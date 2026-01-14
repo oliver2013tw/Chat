@@ -2,38 +2,266 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kreon Chat Room</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kreon Chat - Clean</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #0f172a; height: 100vh; overflow: hidden; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); }
-        #chatBox::-webkit-scrollbar { width: 5px; }
-        #chatBox::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .admin-name { background: linear-gradient(to right, #fbbf24, #f87171); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+        body { 
+            background-color: #111827; /* 深灰色背景，不傷眼 */
+            color: #f3f4f6; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 滾動條美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        /* 公告樣式 */
+        .announcement-box {
+            background-color: #ca8a04; /* 黃色背景 */
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px 16px;
+            margin: 12px 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 0.95rem;
+        }
     </style>
 </head>
-<body class="flex items-center justify-center p-0 md:p-6 text-slate-200">
+<body class="flex flex-col">
 
-    <div id="loginSection" class="w-full max-w-md p-10 text-center animate-fade-in">
-        <div class="mb-8 inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-blue-600 shadow-2xl shadow-blue-500/30">
-            <i class="fas fa-bolt text-white text-4xl"></i>
+    <div id="loginSection" class="fixed inset-0 z-50 bg-gray-900 flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-sm w-full border border-gray-700">
+            <h1 class="text-3xl font-bold text-white mb-2">Kreon Chat</h1>
+            <p class="text-gray-400 mb-6">請登入以繼續</p>
+            <button id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded font-medium transition-colors flex items-center justify-center gap-2">
+                <i class="fab fa-google"></i> Google 登入
+            </button>
         </div>
-        <h1 class="text-5xl font-black text-white mb-4 italic tracking-tighter">KREON</h1>
-        <p class="text-slate-400 mb-10 text-lg">透過 Google 帳號即時連線</p>
-        <button id="loginBtn" class="w-full flex items-center justify-center gap-4 bg-white text-slate-900 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95 shadow-2xl">
-            <img src="https://www.google.com/favicon.ico" class="w-6">
-            使用 Google 登入
-        </button>
     </div>
 
-    <div id="chatSection" class="hidden w-full max-w-6xl h-screen md:h-[90vh] glass md:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-        <header class="px-6 py-5 border-b border-slate-700 flex justify-between items-center bg-slate-800/40">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <i class="fas fa-paper-plane text-white text-xl"></i>
+    <div id="chatSection" class="hidden flex flex-col w-full h-full">
+        
+        <header class="h-14 bg-gray-800 border-b border-gray-700 flex justify-between items-center px-4 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="font-bold text-lg">聊天大廳</div>
+                <div class="bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-300">
+                    在線: <span id="onlineCount" class="text-green-400 font-bold">0</span>
                 </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span id="userNameDisplay" class="text-sm text-gray-300 hidden sm:block"></span>
+                <button id="logoutBtn" class="text-gray-400 hover:text-white p-2">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-900">
+            </div>
+
+        <div class="bg-gray-800 p-4 border-t border-gray-700 shrink-0">
+            <div class="flex gap-2 max-w-4xl mx-auto">
+                <input type="text" id="msgInput" placeholder="輸入訊息..." 
+                    class="flex-1 bg-gray-700 text-white border border-gray-600 rounded px-4 py-2 focus:outline-none focus:border-blue-500 transition-colors">
+                <button id="sendBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-medium transition-colors">
+                    傳送
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+            authDomain: "kreon-chat-web.firebaseapp.com",
+            projectId: "kreon-chat-web",
+            storageBucket: "kreon-chat-web.firebasestorage.app",
+            messagingSenderId: "497509136448",
+            appId: "1:497509136448:web:4899641de83c4f872d47a5",
+            measurementId: "G-G6185N7KZK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const rtdb = getDatabase(app);
+        const provider = new GoogleAuthProvider();
+
+        const ADMIN_EMAIL = "oliver2013.tw@gmail.com";
+        let currentUser = null;
+
+        // DOM 元素
+        const loginSection = document.getElementById('loginSection');
+        const chatSection = document.getElementById('chatSection');
+        const chatBox = document.getElementById('chatBox');
+        const msgInput = document.getElementById('msgInput');
+        const onlineCountEl = document.getElementById('onlineCount');
+
+        // 登入狀態監聽
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loginSection.classList.add('hidden');
+                chatSection.classList.remove('hidden');
+                document.getElementById('userNameDisplay').innerText = user.displayName;
+
+                // 即時資料庫 - 在線狀態
+                const statusRef = ref(rtdb, 'status/' + user.uid);
+                set(statusRef, { 
+                    name: user.displayName, 
+                    email: user.email,
+                    state: 'online',
+                    last_changed: Date.now()
+                });
+                onDisconnect(statusRef).remove();
+
+                loadMessages();
+            } else {
+                loginSection.classList.remove('hidden');
+                chatSection.classList.add('hidden');
+            }
+        });
+
+        // 在線人數監聽
+        onValue(ref(rtdb, 'status'), (snap) => {
+            const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+            onlineCountEl.innerText = count;
+        });
+
+        // 按鈕功能
+        document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, provider);
+        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+        // 傳送訊息邏輯
+        async function sendMessage() {
+            let text = msgInput.value.trim();
+            if (!text) return;
+
+            let messageType = "text"; // 預設為一般訊息
+
+            // --- 公告邏輯判斷 ---
+            if (text.startsWith("/ann ")) {
+                if (currentUser.email === ADMIN_EMAIL) {
+                    messageType = "announce";
+                    text = text.replace("/ann ", ""); // 移除指令，只保留內容
+                } else {
+                    // 如果不是管理員卻輸入 /ann，可以選擇擋下，或當作普通訊息發送
+                    // 這裡選擇當作普通文字發送，不做任何特殊處理
+                }
+            }
+
+            try {
+                await addDoc(collection(db, "messages"), {
+                    uid: currentUser.uid,
+                    name: currentUser.displayName,
+                    photo: currentUser.photoURL,
+                    email: currentUser.email,
+                    text: text,
+                    type: messageType, // 儲存訊息類型
+                    createdAt: serverTimestamp()
+                });
+                msgInput.value = "";
+                msgInput.focus();
+            } catch (error) {
+                console.error("Error sending message:", error);
+                alert("訊息傳送失敗");
+            }
+        }
+
+        document.getElementById('sendBtn').onclick = sendMessage;
+        msgInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+        // 讀取與渲染訊息
+        function loadMessages() {
+            const q = query(collection(db, "messages"), orderBy("createdAt", "asc"), limit(100));
+            onSnapshot(q, (snapshot) => {
+                chatBox.innerHTML = "";
+                snapshot.forEach((docSnap) => {
+                    const msg = docSnap.data();
+                    const isMe = msg.uid === currentUser.uid;
+                    const isAdmin = msg.email === ADMIN_EMAIL;
+                    
+                    // 建立訊息容器
+                    const div = document.createElement('div');
+
+                    // --- 判斷渲染類型 ---
+                    if (msg.type === "announce") {
+                        // 1. 公告樣式 (置中黃色橫幅)
+                        div.className = "w-full flex justify-center animate-pulse";
+                        div.innerHTML = `
+                            <div class="announcement-box">
+                                <i class="fas fa-bullhorn mr-2"></i> 公告：${escapeHtml(msg.text)}
+                            </div>
+                        `;
+                    } else {
+                        // 2. 一般訊息樣式
+                        div.className = `flex ${isMe ? 'justify-end' : 'justify-start'} group`;
+                        
+                        div.innerHTML = `
+                            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs ${isAdmin ? 'text-yellow-500 font-bold' : 'text-gray-400'}">
+                                        ${escapeHtml(msg.name)} ${isAdmin ? '<i class="fas fa-check-circle text-[10px]"></i>' : ''}
+                                    </span>
+                                </div>
+                                <div class="relative px-4 py-2 rounded text-sm break-all ${
+                                    isMe 
+                                    ? 'bg-blue-600 text-white rounded-tr-none' 
+                                    : 'bg-gray-700 text-gray-100 rounded-tl-none'
+                                }">
+                                    ${escapeHtml(msg.text)}
+                                    
+                                    ${currentUser.email === ADMIN_EMAIL ? `
+                                        <button onclick="window.delMsg('${docSnap.id}')" class="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        }
+
+        // 簡單的 HTML 轉義防止 XSS
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // 管理員刪除功能
+        window.delMsg = async (id) => {
+            if (confirm("確定刪除此訊息？")) {
+                await deleteDoc(doc(db, "messages", id));
+            }
+        };
+
+    </script>
+</body>
+</html>
                 <div>
                     <h2 class="font-bold text-white text-xl tracking-tight">Kreon 聊天室</h2>
                     <div class="flex items-center gap-2">
