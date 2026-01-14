@@ -3,37 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kreon Chat - Clean</title>
+    <title>Kreon Chat - Admin System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { 
-            background-color: #111827; /* 深灰色背景，不傷眼 */
-            color: #f3f4f6; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
-            overflow: hidden;
+        /* 全局設定：無圓角、深色系 */
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --accent: #3b82f6;
+            --text-main: #f1f5f9;
         }
+        body { 
+            background-color: var(--bg-primary); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        /* 強制移除所有圓角 */
+        * { border-radius: 0 !important; }
 
         /* 滾動條美化 */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-        /* 公告樣式 */
-        .announcement-box {
-            background-color: #ca8a04; /* 黃色背景 */
-            color: white;
-            font-weight: bold;
+        /* 公告橫幅特效 */
+        .announcement-banner {
+            background: linear-gradient(90deg, #ca8a04, #eab308);
+            color: #000;
+            font-weight: 800;
             text-align: center;
-            padding: 8px 16px;
-            margin: 12px 0;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            font-size: 0.95rem;
+            padding: 8px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.5s ease-out;
+            margin-bottom: 10px;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* 圖片與引用樣式 */
+        .msg-img { max-width: 100%; max-height: 300px; border: 2px solid #334155; margin-top: 5px; }
+        .reply-quote {
+            border-left: 3px solid var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
+</head>
+<body class="flex flex-col">
+
+    <div id="loginSection" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center">
+        <div class="bg-slate-800 p-10 border border-slate-700 shadow-2xl text-center w-full max-w-sm">
+            <div class="mb-6 flex justify-center">
+                <div class="w-16 h-16 bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-terminal text-2xl text-white"></i>
+                </div>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2 tracking-widest">KREON</h1>
+            <p class="text-slate-400 mb-8 text-sm">AUTHORIZED ACCESS ONLY</p>
+            <button id="loginBtn" class="w-full bg-white text-slate-900 font-bold py-4 hover:bg-blue-500 hover:text-white transition-colors flex items-center justify-center gap-3">
+                <img src="https://www.google.com/favicon.ico" class="w-4 h-4"> LOGIN WITH GOOGLE
+            </button>
+        </div>
+    </div>
+
+    <div id="chatSection" class="hidden flex flex-col w-full h-full relative">
+        
+        <header class="h-14 bg-slate-800 border-b border-slate-700 flex justify-between items-center px-4 shrink-0 shadow-lg z-10">
+            <div class="flex items-center gap-4">
+                <div class="font-bold text-lg tracking-wider text-white">SYSTEM <span class="text-blue-500">V4</span></div>
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1 border border-slate-700">
+                    <span class="w-2 h-2 bg-green-500 animate-pulse"></span>
+                    <span class="text-xs text-slate-400 font-mono">ONLINE: <span id="onlineCount" class="text-white font-bold">1</span></span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-0">
+                <button id="soundToggleBtn" class="w-10 h-14 text-slate-400 hover:text-blue-400 transition-colors border-l border-slate-700">
+                    <i class="fas fa-volume-up" id="soundIcon"></i>
+                </button>
+                <div class="px-4 border-l border-slate-700 h-14 flex flex-col justify-center text-right hidden md:flex">
+                    <span id="userNameDisplay" class="text-xs font-bold text-white block">USER</span>
+                    <span class="text-[10px] text-slate-500 block">ID: <span id="userIdDisplay">...</span></span>
+                </div>
+                <button id="logoutBtn" class="w-14 h-14 bg-red-900/20 text-red-500 hover:bg-red-600 hover:text-white transition-colors border-l border-slate-700 flex items-center justify-center">
+                    <i class="fas fa-power-off text-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="chatBox" class="flex-1 overflow-y-auto p-0 bg-slate-900 pb-4">
+            <div class="p-4 text-center text-slate-600 text-xs mt-4">
+                // SYSTEM CONNECTED<br>
+                // ENCRYPTION LEVEL: HIGH<br>
+                // DOUBLE CLICK MESSAGE TO REPLY
+            </div>
+        </div>
+
+        <div class="bg-slate-800 p-0 border-t border-slate-700 shrink-0 relative">
+            <div id="replyPreview" class="hidden absolute -top-10 left-0 right-0 bg-slate-700 p-2 text-xs text-slate-300 flex justify-between items-center border-t border-blue-500">
+                <span id="replyText">Replying...</span>
+                <button onclick="cancelReply()" class="text-red-400 hover:text-white px-2"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="flex h-16">
+                <input type="text" id="msgInput" placeholder="輸入訊息... (/ann 公告, /clear 清屏)" 
+                    class="flex-1 bg-slate-800 text-white px-6 focus:outline-none focus:bg-slate-700 transition-colors font-medium placeholder-slate-500">
+                
+                <button id="sendBtn" class="w-20 bg-blue-600 hover:bg-blue-500 text-white transition-colors font-bold flex items-center justify-center">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="notificationSound" src="data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU..."></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+            authDomain: "kreon-chat-web.firebaseapp.com",
+            projectId: "kreon-chat-web",
+            storageBucket: "kreon-chat-web.firebasestorage.app",
+            messagingSenderId: "497509136448",
+            appId: "1:497509136448:web:4899641de83c4f872d47a5",
+            measurementId: "G-G6185N7KZK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const rtdb = getDatabase(app);
+        const provider = new GoogleAuthProvider();
+
+        const ADMIN_EMAIL = "oliver2013.tw@gmail.com";
+        let currentUser = null;
+        let soundEnabled = true;
+        let replyTo = null; // 儲存引用對象
+
+        // DOM
+        const loginSection = document.getElementById('loginSection');
+        const chatSection = document.getElementById('chatSection');
+        const chatBox = document.getElementById('chatBox');
+        const msgInput = document.getElementById('msgInput');
+        const onlineCountEl = document.getElementById('onlineCount');
+        const replyPreview = document.getElementById('replyPreview');
+        const replyTextEl = document.getElementById('replyText');
+        const soundIcon = document.getElementById('soundIcon');
+
+        // 音效控制
+        function playSound() {
+            if (!soundEnabled) return;
+            // 使用 AudioContext 產生嗶聲 (無需外部檔案)
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+
+        document.getElementById('soundToggleBtn').onclick = () => {
+            soundEnabled = !soundEnabled;
+            soundIcon.className = soundEnabled ? "fas fa-volume-up" : "fas fa-volume-mute text-red-500";
+        };
+
+        // 登入邏輯
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loginSection.classList.add('hidden');
+                chatSection.classList.remove('hidden');
+                document.getElementById('userNameDisplay').innerText = user.displayName;
+                document.getElementById('userIdDisplay').innerText = user.uid.slice(0, 5);
+
+                // 在線狀態設定
+                const userStatusRef = ref(rtdb, 'status/' + user.uid);
+                set(userStatusRef, { name: user.displayName, state: 'online', last_changed: Date.now() });
+                onDisconnect(userStatusRef).remove();
+
+                loadMessages();
+            } else {
+                loginSection.classList.remove('hidden');
+                chatSection.classList.add('hidden');
+            }
+        });
+
+        // 人數修復邏輯
+        onValue(ref(rtdb, 'status'), (snap) => {
+            let count = snap.exists() ? Object.keys(snap.val()).length : 0;
+            // 如果我已經登入，人數至少為 1
+            if (currentUser && count === 0) count = 1;
+            onlineCountEl.innerText = count;
+        });
+
+        document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, provider);
+        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+        // 文字處理 (Markdown + URL + XSS防護)
+        function processText(text) {
+            // 1. 基本 XSS 防護
+            let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            
+            // 2. 圖片偵測
+            if (safe.match(/^https?:\/\/.*\.(jpeg|jpg|gif|png)$/i)) {
+                return `<a href="${safe}" target="_blank"><img src="${safe}" class="msg-img" onerror="this.style.display='none'"></a>`;
+            }
+
+            // 3. 網址自動連結
+            safe = safe.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-blue-400 underline">$1</a>');
+
+            // 4. Markdown (粗體/斜體)
+            safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            safe = safe.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            return safe;
+        }
+
+        // 發送訊息
+        async function sendMessage() {
+            let text = msgInput.value.trim();
+            if (!text) return;
+
+            // 本地指令
+            if (text === "/clear" && currentUser.email === ADMIN_EMAIL) {
+                chatBox.innerHTML = '<div class="p-4 text-center text-slate-500 text-xs">// CONSOLE CLEARED</div>';
+                msgInput.value = "";
+                return;
+            }
+
+            // 處理引用
+            if (replyTo) {
+                text = `> 回覆 ${replyTo.name}: ${replyTo.text}\n${text}`;
+                cancelReply();
+            }
+
+            let type = "text";
+            // 公告邏輯
+            if (text.startsWith("/ann ") && currentUser.email === ADMIN_EMAIL) {
+                type = "announce";
+                text = text.replace("/ann ", "");
+            }
+
+            try {
+                await addDoc(collection(db, "messages"), {
+                    uid: currentUser.uid,
+                    name: currentUser.displayName,
+                    photo: currentUser.photoURL,
+                    email: currentUser.email,
+                    text: text,
+                    type: type,
+                    createdAt: serverTimestamp()
+                });
+                msgInput.value = "";
+                msgInput.focus();
+            } catch (e) {
+                console.error(e);
+                alert("傳送失敗");
+            }
+        }
+
+        document.getElementById('sendBtn').onclick = sendMessage;
+        msgInput.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+        // 引用功能
+        window.startReply = (name, text) => {
+            replyTo = { name, text };
+            replyPreview.classList.remove('hidden');
+            replyTextEl.innerText = `正在回覆 ${name}...`;
+            msgInput.focus();
+        };
+
+        window.cancelReply = () => {
+            replyTo = null;
+            replyPreview.classList.add('hidden');
+        };
+
+        // 讀取訊息
+        function loadMessages() {
+            const q = query(collection(db, "messages"), orderBy("createdAt", "asc"), limit(100));
+            onSnapshot(q, (snapshot) => {
+                chatBox.innerHTML = "";
+                snapshot.forEach((docSnap) => {
+                    const msg = docSnap.data();
+                    const isMe = msg.uid === currentUser.uid;
+                    const isAdmin = msg.email === ADMIN_EMAIL;
+                    
+                    // 音效 (如果不是自己發的，且是新訊息)
+                    if (!isMe && snapshot.metadata.hasPendingWrites === false) {
+                        // playSound(); // 為了不干擾載入，這裡暫時關閉，可依需求開啟
+                    }
+
+                    const div = document.createElement('div');
+
+                    if (msg.type === "announce") {
+                        div.className = "announcement-banner";
+                        div.innerHTML = `<i class="fas fa-bullhorn mr-2"></i> ${processText(msg.text)}`;
+                    } else {
+                        // 處理引用區塊顯示
+                        let displayHTML = processText(msg.text);
+                        if (msg.text.startsWith("> 回覆")) {
+                            const parts = msg.text.split('\n');
+                            const quote = parts[0]; // 第一行是引用
+                            const content = parts.slice(1).join('\n'); // 剩下是內容
+                            displayHTML = `<div class="reply-quote">${quote}</div>${processText(content)}`;
+                        }
+
+                        div.className = `flex ${isMe ? 'justify-end' : 'justify-start'} group px-4 py-2`;
+                        div.innerHTML = `
+                            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[70%]">
+                                <div class="flex items-center gap-2 mb-1 pl-1">
+                                    <span class="text-[10px] font-bold ${isAdmin ? 'text-yellow-500' : 'text-slate-400'}">
+                                        ${isAdmin ? '<i class="fas fa-crown"></i> ' : ''}${msg.name}
+                                    </span>
+                                </div>
+                                <div ondblclick="startReply('${msg.name}', '${msg.text.replace(/\n/g, ' ')}')" 
+                                     class="relative px-4 py-3 text-sm leading-relaxed shadow-md cursor-pointer hover:opacity-90 transition-opacity ${
+                                    isMe 
+                                    ? 'bg-blue-600 text-white' 
+                                    : 'bg-slate-700 text-slate-200'
+                                }">
+                                    ${displayHTML}
+                                    
+                                    ${currentUser.email === ADMIN_EMAIL ? `
+                                        <button onclick="window.delMsg('${docSnap.id}')" class="absolute -right-6 top-0 text-slate-600 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+                // 有新訊息時播放音效
+                if (!snapshot.metadata.fromCache && snapshot.docChanges().some(change => change.type === 'added')) {
+                   playSound();
+                }
+            });
+        }
+
+        window.delMsg = async (id) => {
+            if (confirm("DELETE MESSAGE?")) {
+                await deleteDoc(doc(db, "messages", id));
+            }
+        };
+    </script>
+</body>
+</html>
 </head>
 <body class="flex flex-col">
 
