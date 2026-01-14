@@ -3,37 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chat</title>
+    <title>KREON SYSTEM V6.1 ADMIN_PLUS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* 全局設定：無圓角、深色系 */
-        :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --accent: #3b82f6;
-            --text-main: #f1f5f9;
-        }
-        body { 
-            background-color: var(--bg-primary); 
-            color: var(--text-main); 
-            height: 100vh; 
-            overflow: hidden;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        
-        /* 強制移除所有圓角 */
         * { border-radius: 0 !important; }
+        body { background-color: #f3f4f6; color: #1f2937; height: 100vh; overflow: hidden; font-family: 'Inter', 'Segoe UI', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #e5e7eb; }
+        ::-webkit-scrollbar-thumb { background: #9ca3af; }
+        .announcement { background: #fef9c3; border: 2px solid #eab308; color: #854d0e; padding: 12px; text-align: center; font-weight: bold; margin-bottom: 10px; box-shadow: 2px 2px 0px #eab308; }
+        #adminMenu { transition: transform 0.3s ease-in-out; transform: translateX(100%); }
+        #adminMenu.open { transform: translateX(0); }
+        .msg-shadow { box-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="flex flex-col">
 
-        /* 滾動條美化 */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: var(--bg-primary); }
-        ::-webkit-scrollbar-thumb { background: #475569; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    <div id="loginSection" class="fixed inset-0 z-50 bg-white flex items-center justify-center">
+        <div class="w-full max-w-sm border-4 border-black p-8 text-center bg-white shadow-[8px_8px_0px_#000]">
+            <h1 class="text-5xl font-black italic tracking-tighter mb-2">KREON</h1>
+            <p class="text-gray-400 mb-8 text-xs font-bold uppercase tracking-widest">Admin Backup System v6.1</p>
+            <button id="loginBtn" class="w-full bg-black text-white font-bold py-4 hover:bg-gray-800 transition-all flex items-center justify-center gap-2">
+                <i class="fab fa-google"></i> SIGN IN WITH GOOGLE
+            </button>
+            <p id="loginStatus" class="mt-4 text-xs text-blue-600 font-bold"></p>
+        </div>
+    </div>
 
-        /* 公告橫幅特效 */
-        .announcement-banner {
-            background: linear-gradient(90deg, #ca8a04, #eab308);
+    <div id="adminMenu" class="fixed top-0 right-0 h-full w-72 bg-black text-white z-40 p-6 shadow-2xl">
+        <div class="flex justify-between items-center mb-10">
+            <h3 class="font-black italic text-xl">ADMIN PANEL</h3>
+            <button onclick="toggleAdminMenu()" class="text-white text-2xl">&times;</button>
+        </div>
+        <div class="space-y-4">
+            <button onclick="adminAction('download')" class="w-full border border-blue-500 text-blue-400 p-3 text-left hover:bg-blue-500 hover:text-white transition-colors">
+                <i class="fas fa-download mr-2"></i> 下載聊天備份 (.TXT)
+            </button>
+            <button onclick="adminAction('ann')" class="w-full border border-white p-3 text-left hover:bg-white hover:text-black transition-colors">
+                <i class="fas fa-bullhorn mr-2"></i> 發送系統公告
+            </button>
+            <button onclick="adminAction('clear')" class="w-full border border-red-500 text-red-500 p-3 text-left hover:bg-red-500 hover:text-white transition-colors">
+                <i class="fas fa-trash-alt mr-2"></i> 清除全體紀錄
+            </button>
+            <div class="pt-10 text-[10px] text-gray-500 uppercase tracking-widest">
+                Format: name message date time
+            </div>
+        </div>
+    </div>
+
+    <div id="chatSection" class="hidden flex flex-col w-full h-full">
+        <header class="h-16 bg-white border-b-4 border-black flex justify-between items-center px-6 shrink-0 z-10">
+            <div class="flex items-center gap-4">
+                <div class="bg-black text-white px-3 py-1 font-black italic">V6.1</div>
+                <div class="text-sm font-bold flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500"></span>
+                    ONLINE: <span id="onlineCount">1</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="adminBtn" class="hidden h-10 w-10 border-2 border-black items-center justify-center hover:bg-black hover:text-white">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button id="logoutBtn" class="h-10 w-10 border-2 border-black items-center justify-center hover:bg-red-500 hover:text-white">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="chatBox" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6"></div>
+
+        <div class="bg-white border-t-4 border-black p-4 shrink-0">
+            <div class="flex gap-2 mb-3 overflow-x-auto no-scrollbar pb-1">
+                <button onclick="appendEmoji('👍')" class="px-2 py-1 bg-gray-100 text-sm">👍</button>
+                <button onclick="appendEmoji('🔥')" class="px-2 py-1 bg-gray-100 text-sm">🔥</button>
+                <button onclick="appendEmoji('❤️')" class="px-2 py-1 bg-gray-100 text-sm">❤️</button>
+                <button onclick="appendEmoji('😂')" class="px-2 py-1 bg-gray-100 text-sm">😂</button>
+                <button onclick="appendEmoji('😮')" class="px-2 py-1 bg-gray-100 text-sm">😮</button>
+                <button onclick="appendEmoji('✅')" class="px-2 py-1 bg-gray-100 text-sm">✅</button>
+            </div>
+            <div class="flex gap-2 max-w-5xl mx-auto">
+                <input type="text" id="msgInput" placeholder="在此輸入訊息..." class="flex-1 border-2 border-black px-4 py-3 focus:outline-none font-bold">
+                <button id="sendBtn" class="bg-black text-white px-8 py-3 font-black hover:bg-blue-600">SEND</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+            authDomain: "kreon-chat-web.firebaseapp.com",
+            projectId: "kreon-chat-web",
+            storageBucket: "kreon-chat-web.firebasestorage.app",
+            messagingSenderId: "497509136448",
+            appId: "1:497509136448:web:4899641de83c4f872d47a5",
+            measurementId: "G-G6185N7KZK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const rtdb = getDatabase(app);
+        const provider = new GoogleAuthProvider();
+
+        const ADMIN_EMAIL = "oliver2013.tw@gmail.com";
+        let currentUser = null;
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('chatSection').classList.remove('hidden');
+                if (user.email === ADMIN_EMAIL) document.getElementById('adminBtn').classList.replace('hidden', 'flex');
+                const statusRef = ref(rtdb, 'status/' + user.uid);
+                set(statusRef, { name: user.displayName, state: 'online' });
+                onDisconnect(statusRef).remove();
+                loadMessages();
+            } else {
+                document.getElementById('loginSection').classList.remove('hidden');
+                document.getElementById('chatSection').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('loginBtn').onclick = () => isMobile ? signInWithRedirect(auth, provider) : signInWithPopup(auth, provider);
+        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+        onValue(ref(rtdb, 'status'), (snap) => {
+            const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+            document.getElementById('onlineCount').innerText = (currentUser && count === 0) ? 1 : count;
+        });
+
+        window.toggleAdminMenu = () => document.getElementById('adminMenu').classList.toggle('open');
+        document.getElementById('adminBtn').onclick = toggleAdminMenu;
+
+        window.appendEmoji = (e) => { const i = document.getElementById('msgInput'); i.value += e; i.focus(); };
+
+        // 管理員動作擴充
+        window.adminAction = async (action) => {
+            if (action === 'download') {
+                const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
+                const snap = await getDocs(q);
+                let content = "--- KREON CHAT BACKUP ---\n格式: name message date time\n\n";
+                
+                snap.forEach(d => {
+                    const m = d.data();
+                    const dateObj = m.createdAt ? new Date(m.createdAt.seconds * 1000) : new Date();
+                    const date = dateObj.toLocaleDateString();
+                    const time = dateObj.toLocaleTimeString([], { hour12: false });
+                    content += `[${m.name}] [${m.text}] [${date}] [${time}]\n`;
+                });
+
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_${new Date().toISOString().slice(0,10)}.txt`;
+                a.click();
+                toggleAdminMenu();
+            } else if (action === 'clear') {
+                if (confirm("確定清除全體紀錄？")) {
+                    const snap = await getDocs(collection(db, "messages"));
+                    snap.forEach(async (d) => await deleteDoc(doc(db, "messages", d.id)));
+                    toggleAdminMenu();
+                }
+            } else if (action === 'ann') {
+                const t = prompt("輸入公告：");
+                if (t) await addDoc(collection(db, "messages"), { uid: "system", name: "SYSTEM", text: t, type: "announce", createdAt: serverTimestamp() });
+                toggleAdminMenu();
+            }
+        };
+
+        function loadMessages() {
+            const q = query(collection(db, "messages"), orderBy("createdAt", "asc"), limit(100));
+            onSnapshot(q, (snapshot) => {
+                const chatBox = document.getElementById('chatBox');
+                chatBox.innerHTML = "";
+                snapshot.forEach((docSnap) => {
+                    const msg = docSnap.data();
+                    const isMe = msg.uid === currentUser.uid;
+                    const isAdmin = msg.email === ADMIN_EMAIL;
+                    
+                    // 時間日期處理
+                    const dateObj = msg.createdAt ? new Date(msg.createdAt.seconds * 1000) : new Date();
+                    const fullTime = `${dateObj.getFullYear()}/${(dateObj.getMonth()+1).toString().padStart(2,'0')}/${dateObj.getDate().toString().padStart(2,'0')} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+
+                    const div = document.createElement('div');
+                    if (msg.type === "announce") {
+                        div.innerHTML = `<div class="announcement">📢 SYSTEM: ${msg.text}</div>`;
+                    } else {
+                        div.className = `flex ${isMe ? 'justify-end' : 'justify-start'} group`;
+                        div.innerHTML = `
+                            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]">
+                                <span class="text-[10px] font-black uppercase mb-1 ${isAdmin ? 'text-blue-600' : 'text-gray-400'}">
+                                    ${isAdmin ? '★ ADMIN ' : ''}${msg.name}
+                                </span>
+                                <div class="relative px-4 py-3 text-sm border-2 border-black msg-shadow ${isMe ? 'bg-black text-white' : 'bg-white text-black'}">
+                                    ${msg.text}
+                                    <div class="text-[8px] mt-1 opacity-50 text-right font-mono">${fullTime}</div>
+                                    ${currentUser.email === ADMIN_EMAIL ? `
+                                        <button onclick="window.delMsg('${docSnap.id}')" class="absolute -top-3 -right-3 bg-red-500 text-white w-6 h-6 flex items-center justify-center border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>`;
+                    }
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        }
+
+        async function sendMessage() {
+            const i = document.getElementById('msgInput');
+            let t = i.value.trim();
+            if (!t) return;
+            await addDoc(collection(db, "messages"), {
+                uid: currentUser.uid, name: currentUser.displayName, email: currentUser.email,
+                text: t, type: "text", createdAt: serverTimestamp()
+            });
+            i.value = "";
+        }
+
+        document.getElementById('sendBtn').onclick = sendMessage;
+        document.getElementById('msgInput').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+        window.delMsg = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "messages", id)); };
+    </script>
+</body>
+</html>
             color: #000;
             font-weight: 800;
             text-align: center;
