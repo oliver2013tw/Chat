@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chat v1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        /* 隱藏捲軸但保留功能 */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .msg-bubble {
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <div id="login-section" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100 transition-all duration-300">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-sky-100 text-sky-600 rounded-full mb-4 shadow-sm">
+                    <i class="fa-solid fa-comments text-3xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Chat <span class="text-sm font-medium text-slate-400 align-top ml-1">v1</span></h1>
+                <p class="text-slate-500 mt-2 text-sm">請選擇您的登入身份</p>
+            </div>
+
+            <div id="step-selection" class="space-y-4">
+                <button onclick="selectMode('org')" class="w-full py-4 px-5 border border-slate-200 rounded-xl hover:border-sky-500 hover:bg-sky-50 active:scale-95 transition-all flex items-center group bg-white shadow-sm">
+                    <div class="bg-sky-100 p-2.5 rounded-lg mr-4 text-sky-600 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-building-columns text-lg"></i>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-bold text-slate-700 text-base">我是組織成員</p>
+                        <p class="text-xs text-slate-400 mt-0.5">需驗證組織代號 (SMES)</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right ml-auto text-slate-300 group-hover:text-sky-500"></i>
+                </button>
+
+                <button onclick="selectMode('guest')" class="w-full py-4 px-5 border border-slate-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 active:scale-95 transition-all flex items-center group bg-white shadow-sm">
+                    <div class="bg-emerald-100 p-2.5 rounded-lg mr-4 text-emerald-600 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-user text-lg"></i>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-bold text-slate-700 text-base">無組織 / 訪客</p>
+                        <p class="text-xs text-slate-400 mt-0.5">直接使用 Google 登入</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right ml-auto text-slate-300 group-hover:text-emerald-500"></i>
+                </button>
+            </div>
+
+            <div id="step-org-input" class="hidden space-y-5 animate-fade-in">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2 ml-1">請輸入組織代號</label>
+                    <div class="relative">
+                        <input type="text" id="org-code-input" 
+                            placeholder="請輸入 SMES" 
+                            class="w-full pl-4 pr-4 py-3.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all uppercase placeholder-slate-400 text-lg tracking-widest font-bold text-center"
+                            autocomplete="off">
+                    </div>
+                    <p id="org-error" class="text-red-500 text-xs mt-2 hidden font-medium text-center bg-red-50 py-1 rounded-md"><i class="fa-solid fa-circle-exclamation mr-1"></i> 組織代號錯誤，請輸入 SMES</p>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="resetSelection()" class="w-1/3 py-3.5 rounded-xl border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition-colors active:scale-95">返回</button>
+                    <button id="btn-verify" onclick="verifyOrgCode()" class="w-2/3 py-3.5 rounded-xl bg-sky-600 text-white font-bold hover:bg-sky-700 shadow-lg shadow-sky-200 transition-all active:scale-95 flex items-center justify-center">
+                        <span>下一步</span>
+                        <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="login-loading" class="hidden text-center py-8">
+                <div class="relative w-16 h-16 mx-auto mb-4">
+                    <div class="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-sky-500 rounded-full border-t-transparent animate-spin"></div>
+                </div>
+                <h3 class="font-bold text-slate-700 text-lg">正在連接 Google</h3>
+                <p class="text-slate-400 text-sm mt-1">請稍候，即將跳轉...</p>
+            </div>
+            
+            <div id="global-error" class="hidden mt-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start shadow-sm">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5 mr-2 flex-shrink-0"></i>
+                <span id="global-error-text" class="leading-relaxed"></span>
+            </div>
+        </div>
+        
+        <div class="absolute bottom-4 text-center w-full text-slate-300 text-xs pointer-events-none">
+            Chat System v1.0 &copy; 2024
+        </div>
+    </div>
+
+    <div id="chat-section" class="hidden h-full flex flex-col bg-white max-w-5xl mx-auto w-full shadow-2xl overflow-hidden relative">
+        <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex justify-between items-center z-10 sticky top-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center text-white font-bold shadow-md">
+                    <i class="fa-solid fa-comments text-sm"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-slate-800 text-base leading-tight">Chat v1</h2>
+                    <div class="flex items-center text-[10px] text-emerald-500 font-medium">
+                        <span class="relative flex h-2 w-2 mr-1.5">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        線上
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="hidden sm:flex flex-col items-end mr-1">
+                    <span id="user-display-name" class="text-sm font-semibold text-slate-700"></span>
+                    <span class="text-[10px] text-slate-400" id="user-role-label">使用者</span>
+                </div>
+                <img id="user-avatar" src="" class="w-9 h-9 rounded-full border-2 border-slate-100 shadow-sm" alt="User">
+                <button onclick="handleLogout()" class="ml-2 w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center" title="登出">
+                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <main id="messages-container" class="flex-grow overflow-y-auto p-4 space-y-5 bg-slate-50 scrollbar-hide pb-20">
+            <div class="text-center py-8">
+                <p class="text-slate-400 text-xs bg-slate-200/50 inline-block px-3 py-1 rounded-full">歡迎使用 Chat v1</p>
+            </div>
+            </main>
+
+        <footer class="bg-white p-3 sm:p-4 border-t border-slate-200 safe-area-bottom">
+            <form id="message-form" class="flex gap-2 items-end max-w-4xl mx-auto">
+                <div class="relative flex-grow">
+                    <input type="text" id="message-input" autocomplete="off" 
+                        class="w-full bg-slate-100 border-0 rounded-2xl px-4 py-3 pr-4 focus:ring-2 focus:ring-sky-500 focus:bg-white transition-all outline-none text-slate-700 placeholder-slate-400 text-base" 
+                        placeholder="輸入訊息...">
+                </div>
+                <button type="submit" 
+                    class="bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-full shadow-lg shadow-sky-200/50 transition-all flex-shrink-0 w-12 h-12 flex items-center justify-center">
+                    <i class="fa-solid fa-paper-plane text-lg translate-x-[-1px] translate-y-[1px]"></i>
+                </button>
+            </form>
+        </footer>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // ================= Firebase Config =================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+            authDomain: "kreon-chat-web.firebaseapp.com",
+            databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "kreon-chat-web",
+            storageBucket: "kreon-chat-web.firebasestorage.app",
+            messagingSenderId: "497509136448",
+            appId: "1:497509136448:web:4899641de83c4f872d47a5",
+            measurementId: "G-G6185N7KZK"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // ================= State & DOM =================
+        let currentMode = null; // 'org' or 'guest'
+
+        const dom = {
+            loginSection: document.getElementById('login-section'),
+            chatSection: document.getElementById('chat-section'),
+            stepSelection: document.getElementById('step-selection'),
+            stepOrgInput: document.getElementById('step-org-input'),
+            orgInput: document.getElementById('org-code-input'),
+            orgError: document.getElementById('org-error'),
+            btnVerify: document.getElementById('btn-verify'),
+            loading: document.getElementById('login-loading'),
+            globalError: document.getElementById('global-error'),
+            globalErrorText: document.getElementById('global-error-text'),
+            messagesContainer: document.getElementById('messages-container'),
+            messageForm: document.getElementById('message-form'),
+            messageInput: document.getElementById('message-input'),
+            userAvatar: document.getElementById('user-avatar'),
+            userName: document.getElementById('user-display-name'),
+            userRoleLabel: document.getElementById('user-role-label')
+        };
+
+        // ================= Auth Logic =================
+
+        // 1. 選擇模式
+        function selectMode(mode) {
+            currentMode = mode;
+            localStorage.setItem('chat_v1_mode', mode);
+
+            if (mode === 'org') {
+                dom.stepSelection.classList.add('hidden');
+                dom.stepOrgInput.classList.remove('hidden');
+                
+                // 重點修正：監聽鍵盤 Enter 事件
+                dom.orgInput.addEventListener("keydown", function(event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault(); // 防止預設行為
+                        verifyOrgCode();
+                    }
+                });
+
+                // 給一點延遲再 focus，避免手機鍵盤彈出問題
+                setTimeout(() => dom.orgInput.focus(), 100);
+            } else {
+                startGoogleLogin();
+            }
+        }
+
+        // 重置
+        function resetSelection() {
+            dom.stepOrgInput.classList.add('hidden');
+            dom.stepSelection.classList.remove('hidden');
+            dom.orgError.classList.add('hidden');
+            dom.globalError.classList.add('hidden');
+            dom.orgInput.value = '';
+            // 重置按鈕狀態
+            dom.btnVerify.disabled = false;
+            dom.btnVerify.innerHTML = `<span>下一步</span><i class="fa-solid fa-arrow-right ml-2"></i>`;
+            dom.btnVerify.classList.remove('opacity-70', 'cursor-not-allowed');
+        }
+
+        // 2. 驗證代號
+        function verifyOrgCode() {
+            const code = dom.orgInput.value.trim().toUpperCase();
+            
+            // UI 反饋：讓使用者知道按鈕按下去了
+            if (code === 'SMES') {
+                // 鎖定按鈕避免重複點擊
+                dom.btnVerify.disabled = true;
+                dom.btnVerify.classList.add('opacity-70', 'cursor-not-allowed');
+                dom.btnVerify.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> 驗證中...`;
+                
+                dom.orgError.classList.add('hidden');
+                
+                // 稍微延遲一點點讓 UI 更新再執行登入
+                setTimeout(() => {
+                    startGoogleLogin();
+                }, 300);
+            } else {
+                dom.orgError.classList.remove('hidden');
+                dom.orgInput.classList.add('ring-2', 'ring-red-500', 'animate-pulse');
+                setTimeout(() => dom.orgInput.classList.remove('ring-2', 'ring-red-500', 'animate-pulse'), 500);
+                
+                // 清空錯誤輸入並 focus
+                dom.orgInput.value = '';
+                dom.orgInput.focus();
+            }
+        }
+
+        // 3. 執行 Google 登入
+        function startGoogleLogin() {
+            dom.stepSelection.classList.add('hidden');
+            dom.stepOrgInput.classList.add('hidden');
+            dom.loading.classList.remove('hidden');
+
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            // 確保 provider 設置
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
+
+            if (isMobile) {
+                auth.signInWithRedirect(provider).catch(handleAuthError);
+            } else {
+                auth.signInWithPopup(provider).catch(handleAuthError);
+            }
+        }
+
+        function handleAuthError(error) {
+            console.error(error);
+            dom.loading.classList.add('hidden');
+            // 如果是 org 模式，回到輸入框；如果是 guest，回到選單
+            if (currentMode === 'org') {
+                dom.stepOrgInput.classList.remove('hidden');
+                dom.btnVerify.disabled = false;
+                dom.btnVerify.innerHTML = `<span>下一步</span><i class="fa-solid fa-arrow-right ml-2"></i>`;
+                dom.btnVerify.classList.remove('opacity-70', 'cursor-not-allowed');
+            } else {
+                dom.stepSelection.classList.remove('hidden');
+            }
+            
+            let msg = "登入發生錯誤，請重試。";
+            if(error.code === 'auth/popup-closed-by-user') msg = "登入視窗已關閉";
+            if(error.code === 'auth/network-request-failed') msg = "網路連線異常";
+            
+            showError(msg);
+        }
+
+        function showError(msg) {
+            dom.globalErrorText.textContent = msg;
+            dom.globalError.classList.remove('hidden');
+        }
+
+        // 4. 監聽登入狀態
+        auth.onAuthStateChanged((user) => {
+            const savedMode = localStorage.getItem('chat_v1_mode');
+            if (savedMode) currentMode = savedMode;
+
+            if (user) {
+                checkUserEligibility(user);
+            } else {
+                // 未登入時不執行任何重置，等待使用者操作
+                // 但要確保 loading 消失
+                // 只有在剛載入頁面且確定沒有 user 時才顯示登入介面
+                if (!dom.chatSection.classList.contains('hidden')) {
+                     // 已經在聊天室但被登出
+                     window.location.reload();
+                }
+            }
+        });
+
+        // 5. 資格檢查
+        function checkUserEligibility(user) {
+            if (currentMode === 'org') {
+                const email = user.email || "";
+                if (!email.endsWith('@mail2.smes.tyc.edu.tw')) {
+                    auth.signOut().then(() => {
+                        dom.loading.classList.add('hidden');
+                        dom.stepSelection.classList.remove('hidden'); // 回到最開始
+                        localStorage.removeItem('chat_v1_mode'); // 清除模式
+                        setTimeout(() => {
+                            showError("權限不足：SMES 組織成員必須使用 @mail2.smes.tyc.edu.tw 結尾的信箱。");
+                        }, 500);
+                    });
+                    return;
+                }
+                dom.userRoleLabel.textContent = "組織成員";
+            } else {
+                dom.userRoleLabel.textContent = "訪客";
+            }
+
+            initChat(user);
+        }
+
+        function handleLogout() {
+            if(confirm("確定要登出嗎？")) {
+                auth.signOut().then(() => {
+                    localStorage.removeItem('chat_v1_mode');
+                    window.location.reload();
+                });
+            }
+        }
+
+        // ================= Chat Logic =================
+        function initChat(user) {
+            dom.loginSection.classList.add('hidden');
+            dom.chatSection.classList.remove('hidden');
+            
+            dom.userAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`;
+            dom.userName.textContent = user.displayName;
+                              loadMessages(user);
+
+            dom.messageForm.onsubmit = (e) => {
+                e.preventDefault();
+                sendMessage(user);
+            };
+        }
+
+        function sendMessage(user) {
+            const text = dom.messageInput.value.trim();
+            if (!text) return;
+
+            const newMsgRef = db.ref('messages').push();
+            newMsgRef.set({
+                uid: user.uid,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                text: text,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            }).catch(err => {
+                alert("訊息發送失敗，請檢查網路");
+            });
+
+            dom.messageInput.value = '';
+            dom.messageInput.focus();
+        }
+
+        function loadMessages(currentUser) {
+            dom.messagesContainer.innerHTML = ''; // 清空
+            
+            const messagesRef = db.ref('messages').limitToLast(50);
+            
+            messagesRef.on('child_added', (snapshot) => {
+                const msg = snapshot.val();
+                if(!msg) return;
+
+                const isSelf = msg.uid === currentUser.uid;
+                const date = new Date(msg.timestamp);
+                const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `flex w-full ${isSelf ? 'justify-end' : 'justify-start'} mb-4 animate-fade-in-up`;
+                
+                if (isSelf) {
+                    msgDiv.innerHTML = `
+                        <div class="flex flex-col items-end max-w-[85%]">
+                            <div class="bg-sky-500 text-white px-4 py-2.5 rounded-2xl rounded-tr-sm shadow-md text-sm leading-relaxed msg-bubble">
+                                ${escapeHtml(msg.text)}
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1 mr-1 font-medium">${timeStr}</span>
+                        </div>
+                    `;
+                } else {
+                    msgDiv.innerHTML = `
+                        <div class="flex items-start max-w-[85%]">
+                            <img src="${msg.photoURL || `https://ui-avatars.com/api/?name=${msg.displayName}`}" class="w-8 h-8 rounded-full mr-2 border border-slate-200 shadow-sm flex-shrink-0 object-cover bg-white">
+                            <div class="flex flex-col items-start">
+                                <span class="text-[10px] text-slate-500 ml-1 mb-1 font-medium">${escapeHtml(msg.displayName)}</span>
+                                <div class="bg-white border border-slate-100 text-slate-700 px-4 py-2.5 rounded-2xl rounded-tl-sm shadow-sm text-sm leading-relaxed msg-bubble">
+                                    ${escapeHtml(msg.text)}
+                                </div>
+                                <span class="text-[10px] text-slate-300 mt-1 ml-1">${timeStr}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                dom.messagesContainer.appendChild(msgDiv);
+                scrollToBottom();
+            });
+        }
+
+        function scrollToBottom() {
+            dom.messagesContainer.scrollTop = dom.messagesContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return text;
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // 解決 iOS Safari 100vh 問題
+        const setAppHeight = () => {
+            document.body.style.height = window.innerHeight + 'px';
+        };
+        window.addEventListener('resize', setAppHeight);
+        setAppHeight();
+
+        // 注入動畫樣式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in-up {
+                animation: fadeInUp 0.3s ease-out forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            .animate-fade-in {
+                animation: fadeIn 0.3s ease-out;
+            }
+            /* 針對 iPhone 的安全區域 */
+            .safe-area-bottom {
+                padding-bottom: env(safe-area-inset-bottom, 20px);
+            }
+        `;
+        document.head.appendChild(style);
+
+    </script>
+</body>
+</html>
