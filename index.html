@@ -3,29 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Chat</title> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Chat</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
 <style>
 :root {
-  /* 現代深色主題配色 */
   --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
   --glass-bg: rgba(30, 41, 59, 0.7);
   --glass-border: rgba(255, 255, 255, 0.08);
-  --primary: #6366f1; /* Indigo */
+  --primary: #6366f1;
   --primary-hover: #4f46e5;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --bubble-me: #6366f1;
+  --bubble-me: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   --bubble-other: #334155;
   --danger: #ef4444;
+  --success: #22c55e;
 }
 
 * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
 
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   background: var(--bg-gradient);
   color: var(--text-main);
   height: 100vh;
@@ -34,6 +36,396 @@ body {
   flex-direction: column;
 }
 
+/* ===== 登入與介面框架 ===== */
+#login { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; background: var(--bg-gradient); z-index: 1000; }
+.login-card { text-align: center; padding: 3rem 2rem; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 24px; width: 320px; }
+
+#chat { display: none; flex-direction: column; height: 100%; max-width: 900px; margin: 0 auto; width: 100%; position: relative; }
+
+/* Header */
+header { height: 70px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+/* 管理員按鈕 */
+#adminBtn { display: none; background: rgba(255,255,255,0.1); color: #fbbf24; border: 1px solid rgba(252, 211, 77, 0.3); }
+
+/* Messages */
+#messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.msg-row { display: flex; align-items: flex-end; gap: 10px; max-width: 85%; animation: slideIn 0.3s ease; }
+.msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: #334155; }
+.bubble { padding: 12px 16px; border-radius: 18px; position: relative; font-size: 0.95rem; line-height: 1.5; cursor: pointer; transition: transform 0.1s; user-select: none; }
+.bubble:active { transform: scale(0.98); }
+.msg-row.mine .bubble { background: var(--bubble-me); color: white; border-bottom-right-radius: 4px; }
+.msg-row.other .bubble { background: var(--bubble-other); color: #e2e8f0; border-bottom-left-radius: 4px; }
+
+/* 自定義選單 (ContextMenu) */
+#contextMenu {
+  position: fixed; display: none; background: #1e293b; border: 1px solid var(--glass-border);
+  border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 2000; width: 160px; padding: 6px;
+}
+.menu-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 0.9rem;
+  color: #e2e8f0; cursor: pointer; border-radius: 8px; transition: 0.2s;
+}
+.menu-item:hover { background: rgba(255,255,255,0.1); }
+.menu-item.danger { color: #f87171; }
+.menu-item.danger:hover { background: rgba(248, 113, 113, 0.1); }
+
+/* 管理員面板 (Modal) */
+#adminModal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+  display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px;
+}
+.modal-content {
+  background: #1e293b; width: 100%; max-width: 600px; border-radius: 20px;
+  max-height: 80vh; display: flex; flex-direction: column; border: 1px solid var(--glass-border);
+}
+.modal-header { padding: 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+.modal-body { flex: 1; overflow-y: auto; padding: 0; }
+
+/* 用戶列表表格 */
+.user-table { width: 100%; border-collapse: collapse; }
+.user-table th { text-align: left; padding: 12px 20px; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
+.user-table td { padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.02); font-size: 0.9rem; }
+.status-pill { padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+.status-online { background: rgba(34, 197, 94, 0.1); color: #4ade80; }
+.status-offline { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
+.status-banned { background: rgba(239, 68, 68, 0.1); color: #f87171; }
+
+/* Footer */
+footer { padding: 20px; display: flex; gap: 12px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-top: 1px solid var(--glass-border); }
+.input-wrapper { flex: 1; background: rgba(30, 41, 59, 0.8); border-radius: 24px; padding: 0 16px; border: 1px solid var(--glass-border); display: flex; align-items: center; height: 48px; }
+footer input { flex: 1; background: transparent; border: none; color: white; font-size: 1rem; }
+.btn-send { width: 48px; height: 48px; border-radius: 50%; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.btn-send:hover { background: var(--primary-hover); transform: scale(1.05); }
+
+@keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-card">
+    <h2 style="margin-top:0">Chat <span style="font-weight:400;opacity:0.5">v2.1</span></h2>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:2rem">請使用 Google 帳號登入</p>
+    <button id="loginBtn" style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--primary);color:white;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      <span class="material-icons-round">login</span> 使用 Google 登入
+    </button>
+  </div>
+</div>
+
+<div id="chat">
+  <header>
+    <div class="brand">
+      <span style="font-weight:700;font-size:1.2rem">Chat</span>
+      <span style="background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:0.7rem;padding:2px 6px;border-radius:4px">V2.1</span>
+    </div>
+    <div class="header-right">
+      <button id="adminBtn" class="btn-icon" style="padding:6px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px">
+        <span class="material-icons-round" style="font-size:1.2rem">admin_panel_settings</span>
+        <span style="font-size:0.85rem;font-weight:600">管理儀表板</span>
+      </button>
+      <button id="logoutBtn" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer"><span class="material-icons-round">logout</span></button>
+    </div>
+  </header>
+
+  <div id="messages"></div>
+
+  <footer>
+    <div class="input-wrapper">
+      <input id="msgInput" type="text" placeholder="輸入訊息..." autocomplete="off" />
+    </div>
+    <button id="sendBtn" class="btn-send"><span class="material-icons-round">send</span></button>
+  </footer>
+</div>
+
+<div id="contextMenu">
+  <div class="menu-item" id="menuCopy"><span class="material-icons-round">content_copy</span> 複製內容</div>
+  <div class="menu-item" id="menuReport"><span class="material-icons-round">report</span> 舉報訊息</div>
+  <div class="menu-item" id="menuDelete" class="danger" style="display:none;color:var(--danger)"><span class="material-icons-round">delete_outline</span> 刪除訊息</div>
+</div>
+
+<div id="adminModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 style="margin:0">使用者管理中心</h3>
+      <button id="closeAdmin" style="background:transparent;border:none;color:white;cursor:pointer"><span class="material-icons-round">close</span></button>
+    </div>
+    <div class="modal-body">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>使用者</th>
+            <th>狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="userListTable">
+          </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+/* ===== Firebase Config ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+  authDomain: "kreon-chat-web.firebaseapp.com",
+  databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kreon-chat-web",
+  storageBucket: "kreon-chat-web.firebasestorage.app",
+  messagingSenderId: "497509136448",
+  appId: "1:497509136448:web:4899641de83c4f872d47a5"
+};
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.database();
+const ADMIN_EMAIL = "oliver2013.tw@gmail.com";
+
+let currentMenuTarget = null; // 當前長按的訊息資料
+
+/* ===== 核心邏輯 ===== */
+
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    document.getElementById("login").style.display = "flex";
+    document.getElementById("chat").style.display = "none";
+    return;
+  }
+
+  // 1. 檢查封禁
+  const bannedSnap = await db.ref("banned/" + user.uid).get();
+  if (bannedSnap.exists()) {
+    alert("⛔ 你已被永久封禁。");
+    auth.signOut();
+    return;
+  }
+
+  // 2. 同步用戶資料到 /users (讓管理員看得到)
+  db.ref("users/" + user.uid).update({
+    name: user.displayName,
+    email: user.email,
+    photo: user.photoURL,
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  });
+
+  // 3. 介面顯示
+  document.getElementById("login").style.display = "none";
+  document.getElementById("chat").style.display = "flex";
+  
+  if (user.email === ADMIN_EMAIL) {
+    document.getElementById("adminBtn").style.display = "flex";
+  }
+
+  setupPresence(user);
+  loadMessages(user);
+});
+
+// 在線系統
+function setupPresence(user) {
+  const onlineRef = db.ref("online/" + user.uid);
+  db.ref(".info/connected").on("value", snap => {
+    if (snap.val()) {
+      onlineRef.set(true);
+      onlineRef.onDisconnect().remove();
+    }
+  });
+}
+
+// 載入訊息
+function loadMessages(user) {
+  const messagesDiv = document.getElementById("messages");
+  messagesDiv.innerHTML = "";
+  
+  db.ref("messages").limitToLast(50).on("child_added", snap => {
+    const m = snap.val();
+    const isMe = (m.uid === user.uid);
+    const row = document.createElement("div");
+    row.className = `msg-row ${isMe ? 'mine' : 'other'}`;
+    
+    row.innerHTML = `
+      ${!isMe ? `<img src="${m.photoURL}" class="avatar">` : ''}
+      <div class="msg-content">
+        ${!isMe ? `<span style="font-size:0.7rem;color:var(--text-muted);margin-left:5px">${m.name}</span>` : ''}
+        <div class="bubble" data-id="${snap.key}" data-text="${m.text}" data-uid="${m.uid}" data-name="${m.name}" data-email="${m.email}">
+          ${escapeHtml(m.text)}
+        </div>
+      </div>
+    `;
+
+    const bubble = row.querySelector('.bubble');
+    
+    // 電腦右鍵
+    bubble.oncontextmenu = e => {
+      e.preventDefault();
+      showMenu(e.pageX, e.pageY, bubble.dataset);
+    };
+
+    // 手機長按邏輯
+    let timer;
+    bubble.ontouchstart = e => {
+      timer = setTimeout(() => showMenu(e.touches[0].pageX, e.touches[0].pageY, bubble.dataset), 600);
+    };
+    bubble.ontouchend = () => clearTimeout(timer);
+
+    messagesDiv.appendChild(row);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+}
+
+/* ===== 自定義選單功能 ===== */
+const menu = document.getElementById("contextMenu");
+
+function showMenu(x, y, data) {
+  currentMenuTarget = data;
+  menu.style.display = "block";
+  
+  // 避免選單超出螢幕
+  const menuWidth = 160;
+  const screenWidth = window.innerWidth;
+  if (x + menuWidth > screenWidth) x = screenWidth - menuWidth - 10;
+
+  menu.style.left = x + "px";
+  menu.style.top = y + "px";
+
+  // 管理員才顯示刪除
+  const delBtn = document.getElementById("menuDelete");
+  delBtn.style.display = (auth.currentUser.email === ADMIN_EMAIL) ? "flex" : "none";
+}
+
+// 點擊外面關閉選單
+window.onclick = () => menu.style.display = "none";
+
+// 1. 複製
+document.getElementById("menuCopy").onclick = () => {
+  navigator.clipboard.writeText(currentMenuTarget.text);
+  alert("已複製到剪貼簿");
+};
+
+// 2. 舉報
+document.getElementById("menuReport").onclick = () => {
+  db.ref("reports").push({
+    msgId: currentMenuTarget.id,
+    text: currentMenuTarget.text,
+    reportedUser: currentMenuTarget.name,
+    reporter: auth.currentUser.email,
+    time: Date.now()
+  });
+  alert("感謝舉報，管理員將會進行審查。");
+};
+
+// 3. 刪除
+document.getElementById("menuDelete").onclick = () => {
+  if(confirm("確定要刪除這條訊息嗎？")) {
+    db.ref("messages/" + currentMenuTarget.id).remove();
+  }
+};
+
+/* ===== 管理員面板邏輯 ===== */
+const adminModal = document.getElementById("adminModal");
+document.getElementById("adminBtn").onclick = async () => {
+  adminModal.style.display = "flex";
+  renderUserList();
+};
+document.getElementById("closeAdmin").onclick = () => adminModal.style.display = "none";
+
+async function renderUserList() {
+  const table = document.getElementById("userListTable");
+  table.innerHTML = "<tr><td colspan='3' style='text-align:center'>載入中...</td></tr>";
+
+  // 同時抓取所有用戶、在線清單、封禁清單
+  const [usersSnap, onlineSnap, bannedSnap] = await Promise.all([
+    db.ref("users").get(),
+    db.ref("online").get(),
+    db.ref("banned").get()
+  ]);
+
+  const users = usersSnap.val() || {};
+  const online = onlineSnap.val() || {};
+  const banned = bannedSnap.val() || {};
+
+  table.innerHTML = "";
+  Object.keys(users).forEach(uid => {
+    const u = users[uid];
+    const isOnline = online[uid] ? true : false;
+    const isBanned = banned[uid] ? true : false;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="${u.photo}" style="width:24px;height:24px;border-radius:50%">
+          <div>
+            <div style="font-weight:600">${u.name}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted)">${u.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        ${isBanned ? '<span class="status-pill status-banned">已封禁</span>' : 
+          (isOnline ? '<span class="status-pill status-online">在線</span>' : '<span class="status-pill status-offline">離線</span>')}
+      </td>
+      <td>
+        ${u.email === ADMIN_EMAIL ? '-' : `
+          <button onclick="toggleBan('${uid}', '${u.email}', ${isBanned})" style="background:transparent;border:1px solid ${isBanned?'#4ade80':'#f87171'};color:${isBanned?'#4ade80':'#f87171'};padding:4px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem">
+            ${isBanned ? '解封' : '封禁'}
+          </button>
+        `}
+      </td>
+    `;
+    table.appendChild(tr);
+  });
+}
+
+// 封禁切換功能
+window.toggleBan = async (uid, email, currentlyBanned) => {
+  if (currentlyBanned) {
+    if(confirm(`確定要解封 ${email} 嗎？`)) {
+      await db.ref("banned/" + uid).remove();
+    }
+  } else {
+    if(confirm(`確定要封禁 ${email} 嗎？該用戶將無法再登入。`)) {
+      await db.ref("banned/" + uid).set({ email, time: Date.now() });
+    }
+  }
+  renderUserList(); // 重新整理列表
+};
+
+/* ===== 訊息發送 ===== */
+document.getElementById("sendBtn").onclick = send;
+document.getElementById("msgInput").onkeydown = e => e.key === "Enter" && send();
+
+function send() {
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text) return;
+  const u = auth.currentUser;
+  db.ref("messages").push({
+    uid: u.uid,
+    name: u.displayName,
+    email: u.email,
+    photoURL: u.photoURL,
+    text: text,
+    time: firebase.database.ServerValue.TIMESTAMP
+  });
+  document.getElementById("msgInput").value = "";
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
 /* ===== 登入畫面 (毛玻璃卡片) ===== */
 #login {
   position: absolute;
