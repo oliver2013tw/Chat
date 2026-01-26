@@ -20,13 +20,13 @@
 
 * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
 
-body {
-  margin: 0;
+html, body {
+  margin: 0; padding: 0;
+  height: 100%; width: 100%;
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--bg-dark);
   color: var(--text-main);
-  height: 100vh; /* 確保佔滿螢幕 */
-  overflow: hidden;
+  overflow: hidden; /* 防止整個頁面滾動 */
 }
 
 /* ===== 登入介面 ===== */
@@ -46,34 +46,33 @@ body {
   display: flex; align-items: center; justify-content: center;
   background: white; color: #3c4043; width: 100%; padding: 12px;
   border-radius: 8px; border: none; font-weight: 600; cursor: pointer;
-  margin-top: 25px; transition: 0.2s;
+  margin-top: 25px;
 }
 
-/* ===== 聊天主結構 (修復輸入框消失的問題) ===== */
+/* ===== 聊天主結構 (核心修正：Flex 佈局) ===== */
 #chat { 
-  display: none; 
-  display: grid; 
-  grid-template-rows: 60px 1fr 75px; /* 強制分割標頭、內容、輸入框 */
-  height: 100vh;
+  display: none; /* 初始隱藏，由 JS 控制 */
+  flex-direction: column;
+  height: 100dvh; /* 動態視窗高度，適應手機鍵盤 */
   width: 100%;
 }
 
 header {
-  grid-row: 1;
+  height: 60px; flex-shrink: 0;
   padding: 0 20px;
   display: flex; justify-content: space-between; align-items: center;
   background: var(--bg-header); border-bottom: 1px solid var(--glass-border);
-  z-index: 10;
 }
 
 #messages { 
-  grid-row: 2;
-  overflow-y: auto; padding: 20px; 
+  flex: 1; /* 自動填滿剩餘空間 */
+  overflow-y: auto; 
+  padding: 20px; 
   display: flex; flex-direction: column; gap: 16px;
   background: var(--bg-dark);
 }
 
-/* 訊息與禁止選取 */
+/* 訊息樣式 - 禁止文字選取 */
 .msg-row { display: flex; align-items: flex-end; gap: 10px; max-width: 85%; }
 .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
 
@@ -84,18 +83,20 @@ header {
 
 .bubble {
   padding: 10px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4;
-  cursor: pointer; position: relative;
-  user-select: none; -webkit-user-select: none; /* 禁止選取文字 */
+  cursor: pointer; 
+  user-select: none; -webkit-user-select: none; /* 嚴格禁止文字選取 */
 }
 .msg-row.mine .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
 .msg-row.other .bubble { background: #334155; color: #f1f5f9; border-bottom-left-radius: 4px; }
 
-/* ===== 輸入區域 (保證可見) ===== */
+/* ===== 底部輸入框 (確保絕對可見) ===== */
 footer { 
-  grid-row: 3;
-  padding: 10px 20px; background: var(--bg-header); 
+  height: 70px; flex-shrink: 0; /* 鎖定高度，不准被擠壓 */
+  padding: 0 20px; 
+  background: var(--bg-header); 
   display: flex; gap: 10px; align-items: center;
   border-top: 1px solid var(--glass-border);
+  z-index: 50;
 }
 .input-wrapper { 
   flex: 1; background: #1e293b; border-radius: 20px; 
@@ -104,18 +105,19 @@ footer {
 }
 footer input { 
   flex: 1; background: transparent; border: none; color: white; 
-  font-size: 1rem; height: 44px;
+  font-size: 1rem; height: 40px;
 }
 .btn-send { 
   width: 44px; height: 44px; border-radius: 50%; border: none; 
-  background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  background: var(--primary); color: white; cursor: pointer; 
+  display: flex; align-items: center; justify-content: center;
 }
 
-/* ===== 選單與管理面板 ===== */
+/* ===== 選單與彈窗 ===== */
 #contextMenu {
   position: fixed; display: none; background: #1e293b; 
   border: 1px solid var(--glass-border); border-radius: 12px; 
-  width: 160px; z-index: 20000;
+  width: 160px; z-index: 20000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 .menu-item {
   padding: 12px 16px; display: flex; align-items: center; gap: 10px;
@@ -128,10 +130,10 @@ footer input {
 }
 .admin-card {
   background: #1e293b; width: 90%; max-width: 500px; border-radius: 20px;
-  max-height: 70vh; overflow: hidden; display: flex; flex-direction: column;
+  height: 70vh; display: flex; flex-direction: column;
 }
 .admin-list { flex: 1; overflow-y: auto; padding: 10px; }
-.user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.user-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 </style>
 </head>
 
@@ -177,7 +179,7 @@ footer input {
 <div id="adminModal">
   <div class="admin-card">
     <div style="padding:15px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between">
-      <h3 style="margin:0">用戶管理</h3>
+      <h3 style="margin:0">管理面板</h3>
       <span id="closeAdmin" style="cursor:pointer" class="material-icons-round">close</span>
     </div>
     <div class="admin-list" id="adminUserList"></div>
@@ -205,7 +207,6 @@ const db = firebase.database();
 const ADMIN_EMAIL = "oliver2013.tw@gmail.com";
 let currentText = "";
 
-/* ===== 核心流程 ===== */
 auth.onAuthStateChanged(async user => {
   const loginUI = document.getElementById("login");
   const chatUI = document.getElementById("chat");
@@ -216,7 +217,6 @@ auth.onAuthStateChanged(async user => {
     return;
   }
 
-  // 封鎖檢查
   const banned = await db.ref("banned/" + user.uid).get();
   if (banned.exists()) {
     alert("⛔ 您的帳號已被封鎖。");
@@ -224,15 +224,14 @@ auth.onAuthStateChanged(async user => {
     return;
   }
 
-  // 用戶同步
+  // 同步用戶資料
   db.ref("users/" + user.uid).update({
     name: user.displayName, email: user.email, photo: user.photoURL
   });
 
   loginUI.style.display = "none";
-  chatUI.style.display = "grid";
+  chatUI.style.display = "flex"; // 修正為 Flex
 
-  // 管理員按鈕顯示邏輯
   if (user.email === ADMIN_EMAIL) {
     document.getElementById("adminBtn").style.display = "block";
   }
@@ -241,7 +240,6 @@ auth.onAuthStateChanged(async user => {
   loadMessages(user);
 });
 
-/* ===== 在線與訊息載入 ===== */
 function setupPresence(user) {
   const ref = db.ref("online/" + user.uid);
   ref.set(true);
@@ -254,6 +252,7 @@ function setupPresence(user) {
 function loadMessages(user) {
   const container = document.getElementById("messages");
   container.innerHTML = "";
+  db.ref("messages").limitToLast(50).off(); // 清除舊監聽
   db.ref("messages").limitToLast(50).on("child_added", snap => {
     const m = snap.val();
     const isMe = m.uid === user.uid;
@@ -281,7 +280,6 @@ function loadMessages(user) {
   });
 }
 
-/* ===== 功能選單與管理 ===== */
 const menu = document.getElementById("contextMenu");
 function showMenu(x, y, text) {
   currentText = text;
@@ -295,16 +293,13 @@ document.getElementById("menuCopy").onclick = () => {
   alert("已複製文字");
 };
 
-// 管理員面板開啟
 document.getElementById("adminBtn").onclick = async () => {
   document.getElementById("adminModal").style.display = "flex";
   const list = document.getElementById("adminUserList");
-  list.innerHTML = "<p style='padding:20px'>載入中...</p>";
-
+  list.innerHTML = "載入中...";
   const [uSnap, bSnap] = await Promise.all([db.ref("users").get(), db.ref("banned").get()]);
   const users = uSnap.val() || {};
   const banned = bSnap.val() || {};
-
   list.innerHTML = "";
   Object.keys(users).forEach(uid => {
     const u = users[uid];
@@ -312,8 +307,8 @@ document.getElementById("adminBtn").onclick = async () => {
     const item = document.createElement("div");
     item.className = "user-item";
     item.innerHTML = `
-      <div><div style="font-weight:600">${u.name}</div><div style="font-size:0.7rem; color:#94a3b8">${u.email}</div></div>
-      <button onclick="toggleBan('${uid}', ${isBanned})" style="background:${isBanned?'#22c55e':'#ef4444'}; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:0.7rem">${isBanned?'解封':'封鎖'}</button>
+      <div><div>${u.name}</div><div style="font-size:0.7rem; color:#94a3b8">${u.email}</div></div>
+      <button onclick="toggleBan('${uid}', ${isBanned})" style="background:${isBanned?'#22c55e':'#ef4444'}; color:white; border:none; padding:4px 10px; border-radius:4px">${isBanned?'解封':'封鎖'}</button>
     `;
     list.appendChild(item);
   });
@@ -321,12 +316,11 @@ document.getElementById("adminBtn").onclick = async () => {
 
 window.toggleBan = async (uid, isBanned) => {
   if (isBanned) await db.ref("banned/" + uid).remove();
-  else if(confirm("確定封鎖此用戶？")) await db.ref("banned/" + uid).set(true);
+  else if(confirm("確定封鎖？")) await db.ref("banned/" + uid).set(true);
   document.getElementById("adminBtn").click();
 };
 document.getElementById("closeAdmin").onclick = () => document.getElementById("adminModal").style.display = "none";
 
-/* ===== 收發訊息 ===== */
 function send() {
   const input = document.getElementById("msgInput");
   const text = input.value.trim();
