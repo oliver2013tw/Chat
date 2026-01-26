@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Kreon Chat</title>
+<title>Chat</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -11,12 +11,11 @@
 <style>
 :root {
   --bg-dark: #0f172a;
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-  --glass: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --bg-header: #020617;
   --primary: #6366f1;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -27,76 +26,71 @@ body {
   background: var(--bg-dark);
   color: var(--text-main);
   height: 100vh;
-  overflow: hidden;
+  overflow: hidden; /* 防止整個頁面滾動 */
 }
 
-/* ===== 登入介面修正 ===== */
+/* ===== 登入介面 (修復破圖與按鈕) ===== */
 #login {
   position: fixed; inset: 0;
-  background: var(--bg-gradient);
-  display: flex; justify-content: center; align-items: center;
+  background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+  display: none; justify-content: center; align-items: center;
   z-index: 10000;
 }
-
 .login-card {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  padding: 40px;
-  border-radius: 24px;
-  text-align: center;
-  width: 90%; max-width: 360px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  padding: 40px; border-radius: 24px; text-align: center;
+  width: 90%; max-width: 360px; border: 1px solid var(--glass-border);
 }
-
 .google-btn {
   display: flex; align-items: center; justify-content: center;
-  background: white; color: #3c4043;
-  width: 100%; padding: 12px;
-  border-radius: 8px; border: none;
-  font-weight: 600; cursor: pointer;
-  margin-top: 20px; transition: 0.2s;
+  background: white; color: #3c4043; width: 100%; padding: 12px;
+  border-radius: 8px; border: none; font-weight: 600; cursor: pointer;
+  margin-top: 25px; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 .google-btn:hover { background: #f8f9fa; transform: translateY(-2px); }
-.google-btn span { margin-left: 10px; }
 
-/* ===== 聊天主介面修正 ===== */
+/* ===== 聊天主介面 (修復佈局與輸入框) ===== */
 #chat { 
   display: none; flex-direction: column; height: 100vh; width: 100%; 
-  max-width: 800px; margin: 0 auto; background: var(--bg-dark); 
 }
 
 header {
+  flex-shrink: 0; /* 禁止壓縮標頭 */
   height: 60px; padding: 0 20px;
   display: flex; justify-content: space-between; align-items: center;
-  background: rgba(15, 23, 42, 0.9);
-  border-bottom: 1px solid var(--glass-border);
+  background: var(--bg-header); border-bottom: 1px solid var(--glass-border);
 }
 
 #messages { 
-  flex: 1; overflow-y: auto; padding: 20px; 
-  display: flex; flex-direction: column; gap: 15px;
+  flex: 1; /* 佔滿剩餘空間 */
+  overflow-y: auto; padding: 20px; 
+  display: flex; flex-direction: column; gap: 16px;
+  background: var(--bg-dark);
 }
 
-/* 訊息氣泡 - 禁止選取 */
+/* 訊息樣式 - 禁止文字選取 */
 .msg-row { display: flex; align-items: flex-end; gap: 10px; max-width: 85%; }
 .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
 
-.avatar { width: 34px; height: 34px; border-radius: 50%; background: #334155; object-fit: cover; }
+.avatar { 
+  width: 36px; height: 36px; border-radius: 50%; 
+  background: #334155; object-fit: cover; border: 1px solid var(--glass-border);
+}
 
 .bubble {
   padding: 10px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4;
   cursor: pointer; position: relative;
-  user-select: none; -webkit-user-select: none; /* 禁止文字選取 */
+  user-select: none; -webkit-user-select: none; /* 禁止選取 */
 }
 .msg-row.mine .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
 .msg-row.other .bubble { background: #334155; color: #f1f5f9; border-bottom-left-radius: 4px; }
 
-/* ===== 輸入框區塊 (確保顯示) ===== */
+/* ===== 固定在底部的輸入框 ===== */
 footer { 
-  padding: 15px 20px; background: rgba(15, 23, 42, 1); 
+  flex-shrink: 0; /* 確保輸入框不會被壓縮消失 */
+  padding: 15px 20px; background: var(--bg-header); 
   display: flex; gap: 10px; border-top: 1px solid var(--glass-border);
-  z-index: 100;
 }
 .input-wrapper { 
   flex: 1; background: #1e293b; border-radius: 20px; 
@@ -109,10 +103,10 @@ footer input {
 }
 .btn-send { 
   width: 44px; height: 44px; border-radius: 50%; border: none; 
-  background: var(--primary); color: white; cursor: pointer; 
+  background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 
-/* ===== 長按選單 ===== */
+/* ===== 選單樣式 ===== */
 #contextMenu {
   position: fixed; display: none; background: #1e293b; 
   border: 1px solid var(--glass-border); border-radius: 12px; 
@@ -123,22 +117,6 @@ footer input {
   cursor: pointer; font-size: 0.9rem; color: #e2e8f0;
 }
 .menu-item:hover { background: rgba(255,255,255,0.1); }
-.menu-item.danger { color: #f87171; }
-
-/* ===== 管理面板 ===== */
-#adminModal {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-  display: none; justify-content: center; align-items: center; z-index: 21000;
-}
-.admin-card {
-  background: #1e293b; width: 95%; max-width: 600px; border-radius: 20px;
-  max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;
-}
-.admin-list { flex: 1; overflow-y: auto; padding: 10px; }
-.user-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
-}
 </style>
 </head>
 
@@ -146,10 +124,10 @@ footer input {
 
 <div id="login">
   <div class="login-card">
-    <h1 style="margin:0; font-size:2.5rem">Kreon</h1>
-    <p style="color:var(--text-muted)">請登入以開始對話</p>
+    <h1 style="margin:0; font-size:2.8rem; letter-spacing:-1px">Chat</h1>
+    <p style="color:var(--text-muted); margin-top:5px">與世界即時連線</p>
     <button id="loginBtn" class="google-btn">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      <svg width="20" height="20" style="margin-right:12px" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       <span>使用 Google 帳號登入</span>
     </button>
   </div>
@@ -157,40 +135,26 @@ footer input {
 
 <div id="chat">
   <header>
-    <div>
-        <span style="font-weight:800; font-size:1.2rem">Kreon</span>
-        <button id="adminBtn" style="display:none; background:rgba(251,191,36,0.1); color:#fbbf24; border:1px solid #fbbf24; padding:4px 8px; border-radius:6px; font-size:0.7rem; margin-left:10px; cursor:pointer">管理</button>
-    </div>
     <div style="display:flex; align-items:center; gap:10px">
-        <span id="online" style="font-size:0.8rem; color:var(--text-muted)">0 人在線</span>
-        <button id="logoutBtn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer"><span class="material-icons-round">logout</span></button>
+        <span style="font-weight:800; font-size:1.4rem">Chat</span>
+        <span id="online" style="font-size:0.8rem; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:10px">0 人在線</span>
     </div>
+    <button id="logoutBtn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer"><span class="material-icons-round">logout</span></button>
   </header>
 
   <div id="messages"></div>
 
   <footer>
     <div class="input-wrapper">
-      <input id="msgInput" placeholder="輸入訊息…" autocomplete="off" />
+      <input id="msgInput" placeholder="在此輸入訊息…" autocomplete="off" />
     </div>
     <button id="sendBtn" class="btn-send"><span class="material-icons-round">send</span></button>
   </footer>
 </div>
 
 <div id="contextMenu">
-  <div class="menu-item" id="menuCopy"><span class="material-icons-round">content_copy</span> 複製</div>
-  <div class="menu-item" id="menuReport"><span class="material-icons-round">report</span> 舉報</div>
-  <div class="menu-item danger" id="menuDelete" style="display:none"><span class="material-icons-round">delete</span> 刪除</div>
-</div>
-
-<div id="adminModal">
-  <div class="admin-card">
-    <div style="padding:20px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between">
-        <h3 style="margin:0">管理員選單</h3>
-        <span id="closeAdmin" style="cursor:pointer" class="material-icons-round">close</span>
-    </div>
-    <div class="admin-list" id="adminUserList"></div>
-  </div>
+  <div class="menu-item" id="menuCopy"><span class="material-icons-round">content_copy</span> 複製文字</div>
+  <div class="menu-item" id="menuReport"><span class="material-icons-round">report</span> 檢舉訊息</div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -211,10 +175,9 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.database();
-const ADMIN = "oliver2013.tw@gmail.com";
-let currentMsg = null;
+let currentMsgText = "";
 
-/* ===== 核心流程 ===== */
+/* ===== 登入與權限偵測 ===== */
 auth.onAuthStateChanged(async user => {
   if (!user) {
     document.getElementById("login").style.display = "flex";
@@ -222,59 +185,60 @@ auth.onAuthStateChanged(async user => {
     return;
   }
 
+  // 檢查是否被封鎖
   const bannedSnap = await db.ref("banned/" + user.uid).get();
   if (bannedSnap.exists()) {
-    alert("⛔ 你已被封禁。");
+    alert("您的帳號已被封鎖。");
     auth.signOut();
     return;
   }
 
-  // 同步用戶資料 (為了給管理員看)
-  db.ref("users/" + user.uid).update({
-    name: user.displayName,
-    email: user.email,
-    photo: user.photoURL,
-    lastSeen: Date.now()
-  });
-
   document.getElementById("login").style.display = "none";
   document.getElementById("chat").style.display = "flex";
-  if (user.email === ADMIN) document.getElementById("adminBtn").style.display = "block";
-
+  
   setupPresence(user);
   loadMessages(user);
 });
 
+/* ===== 在線人數系統 (優化版) ===== */
 function setupPresence(user) {
   const ref = db.ref("online/" + user.uid);
   ref.set(true);
   ref.onDisconnect().remove();
+
   db.ref("online").on("value", snap => {
-    document.getElementById("online").textContent = snap.numChildren() + " 人在線";
+    const count = snap.numChildren();
+    document.getElementById("online").textContent = count + " 人在線";
   });
 }
 
+/* ===== 載入訊息 (含頭像修復) ===== */
 function loadMessages(user) {
   const container = document.getElementById("messages");
   container.innerHTML = "";
+  
   db.ref("messages").limitToLast(50).on("child_added", snap => {
     const m = snap.val();
     const isMe = m.uid === user.uid;
     const row = document.createElement("div");
     row.className = `msg-row ${isMe ? 'mine' : 'other'}`;
+    
+    // 使用 Google photoURL，若無則顯示空白頭像
+    const photo = m.photoURL || `https://ui-avatars.com/api/?name=${m.name}&background=random`;
+
     row.innerHTML = `
-      ${!isMe ? `<img src="${m.photoURL || ''}" class="avatar">` : ''}
-      <div class="bubble" data-id="${snap.key}" data-text="${m.text}">
+      ${!isMe ? `<img src="${photo}" class="avatar" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_anonymous_64dp.png'">` : ''}
+      <div class="bubble" data-text="${m.text}">
         ${m.text}
       </div>
     `;
+
     const bubble = row.querySelector('.bubble');
+    bubble.oncontextmenu = e => { e.preventDefault(); showMenu(e.pageX, e.pageY, m.text); };
     
-    // 右鍵
-    bubble.oncontextmenu = e => { e.preventDefault(); showMenu(e.pageX, e.pageY, bubble.dataset); };
-    // 手機長按
+    // 手機長按邏輯
     let timer;
-    bubble.ontouchstart = e => { timer = setTimeout(() => showMenu(e.touches[0].pageX, e.touches[0].pageY, bubble.dataset), 600); };
+    bubble.ontouchstart = e => { timer = setTimeout(() => showMenu(e.touches[0].pageX, e.touches[0].pageY, m.text), 600); };
     bubble.ontouchend = () => clearTimeout(timer);
 
     container.appendChild(row);
@@ -284,80 +248,35 @@ function loadMessages(user) {
 
 /* ===== 選單邏輯 ===== */
 const menu = document.getElementById("contextMenu");
-function showMenu(x, y, data) {
-  currentMsg = data;
+function showMenu(x, y, text) {
+  currentMsgText = text;
   menu.style.display = "block";
   menu.style.left = Math.min(x, window.innerWidth - 170) + "px";
   menu.style.top = y + "px";
-  document.getElementById("menuDelete").style.display = (auth.currentUser.email === ADMIN) ? "flex" : "none";
 }
 window.onclick = () => menu.style.display = "none";
 
 document.getElementById("menuCopy").onclick = () => {
-  navigator.clipboard.writeText(currentMsg.text);
-  alert("已複製");
-};
-document.getElementById("menuReport").onclick = () => {
-  db.ref("reports").push({ msgId: currentMsg.id, by: auth.currentUser.email });
-  alert("已舉報");
-};
-document.getElementById("menuDelete").onclick = () => {
-  if(confirm("刪除此訊息？")) db.ref("messages/" + currentMsg.id).remove();
+  navigator.clipboard.writeText(currentMsgText);
+  alert("已複製訊息");
 };
 
-/* ===== 管理面板 ===== */
-document.getElementById("adminBtn").onclick = async () => {
-  document.getElementById("adminModal").style.display = "flex";
-  const list = document.getElementById("adminUserList");
-  list.innerHTML = "<p style='padding:20px'>載入中...</p>";
-
-  const [uSnap, oSnap, bSnap] = await Promise.all([
-    db.ref("users").get(), db.ref("online").get(), db.ref("banned").get()
-  ]);
-
-  const users = uSnap.val() || {};
-  const online = oSnap.val() || {};
-  const banned = bSnap.val() || {};
-
-  list.innerHTML = "";
-  Object.keys(users).forEach(uid => {
-    const u = users[uid];
-    const item = document.createElement("div");
-    item.className = "user-item";
-    const isOnline = !!online[uid];
-    const isBanned = !!banned[uid];
-
-    item.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px">
-        <img src="${u.photo}" style="width:30px;height:30px;border-radius:50%">
-        <div>
-          <div style="font-size:0.8rem;font-weight:600">${u.name} ${isOnline ? '<span style="color:#22c55e">●</span>':''}</div>
-          <div style="font-size:0.6rem;color:var(--text-muted)">${u.email}</div>
-        </div>
-      </div>
-      <button onclick="toggleBan('${uid}', ${isBanned})" style="background:${isBanned?'#22c55e':'#ef4444'}; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:0.7rem">${isBanned?'解封':'封鎖'}</button>
-    `;
-    list.appendChild(item);
-  });
-};
-
-window.toggleBan = async (uid, isBanned) => {
-  if (isBanned) await db.ref("banned/" + uid).remove();
-  else await db.ref("banned/" + uid).set(true);
-  document.getElementById("adminBtn").click(); // 重新整理列表
-};
-document.getElementById("closeAdmin").onclick = () => document.getElementById("adminModal").style.display = "none";
-
-/* ===== 基本操作 ===== */
+/* ===== 發送功能 (確保儲存頭像連結) ===== */
 function send() {
-  const text = document.getElementById("msgInput").value.trim();
+  const input = document.getElementById("msgInput");
+  const text = input.value.trim();
   if (!text) return;
+
   const u = auth.currentUser;
   db.ref("messages").push({
-    uid: u.uid, name: u.displayName, email: u.email,
-    photoURL: u.photoURL, text, time: Date.now() // 加入 photoURL 解決頭像問題
+    uid: u.uid,
+    name: u.displayName,
+    email: u.email,
+    photoURL: u.photoURL, // 關鍵：確保將 Google 頭像存入資料庫
+    text: text,
+    time: Date.now()
   });
-  document.getElementById("msgInput").value = "";
+  input.value = "";
 }
 
 document.getElementById("sendBtn").onclick = send;
@@ -366,4 +285,5 @@ document.getElementById("loginBtn").onclick = () => auth.signInWithPopup(new fir
 document.getElementById("logoutBtn").onclick = () => auth.signOut();
 </script>
 </body>
-</html>
+  </html>
+  
