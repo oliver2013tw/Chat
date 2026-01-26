@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Chat</title>
+<title>Kreon Chat</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -12,12 +12,11 @@
 :root {
   --bg-dark: #0f172a;
   --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-  --glass: rgba(255, 255, 255, 0.04);
+  --glass: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
   --primary: #6366f1;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --danger: #ef4444;
 }
 
 * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -31,7 +30,7 @@ body {
   overflow: hidden;
 }
 
-/* ===== 登入介面 (v2 美化版) ===== */
+/* ===== 登入介面修正 ===== */
 #login {
   position: fixed; inset: 0;
   background: var(--bg-gradient);
@@ -42,115 +41,115 @@ body {
 .login-card {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   padding: 40px;
-  border-radius: 32px;
+  border-radius: 24px;
   text-align: center;
-  width: 90%;
-  max-width: 380px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  width: 90%; max-width: 360px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
 }
 
-.login-card h1 {
-  font-size: 2.8rem; margin: 0; font-weight: 800;
-  background: linear-gradient(to right, #fff, #94a3b8);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-
-.login-card p { color: var(--text-muted); margin: 10px 0 30px; font-size: 1rem; }
-
-/* 真正的 Google 登入按鈕樣式 */
 .google-btn {
-  display: inline-flex;
-  align-items: center;
-  background: white;
-  color: #3c4043;
-  padding: 2px 16px 2px 2px;
-  border-radius: 4px;
-  border: none;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  transition: box-shadow 0.2s;
-  height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: white; color: #3c4043;
+  width: 100%; padding: 12px;
+  border-radius: 8px; border: none;
+  font-weight: 600; cursor: pointer;
+  margin-top: 20px; transition: 0.2s;
 }
-.google-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-.google-btn img { width: 40px; height: 40px; margin-right: 12px; }
+.google-btn:hover { background: #f8f9fa; transform: translateY(-2px); }
+.google-btn span { margin-left: 10px; }
 
-/* ===== 聊天主介面 ===== */
-#chat { display: none; flex-direction: column; height: 100vh; max-width: 900px; margin: 0 auto; background: var(--bg-dark); }
+/* ===== 聊天主介面修正 ===== */
+#chat { 
+  display: none; flex-direction: column; height: 100vh; width: 100%; 
+  max-width: 800px; margin: 0 auto; background: var(--bg-dark); 
+}
 
 header {
-  height: 70px; padding: 0 20px;
+  height: 60px; padding: 0 20px;
   display: flex; justify-content: space-between; align-items: center;
+  background: rgba(15, 23, 42, 0.9);
   border-bottom: 1px solid var(--glass-border);
-  background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
-  z-index: 100;
 }
 
-.header-user { display: flex; align-items: center; gap: 10px; background: var(--glass); padding: 5px 12px; border-radius: 50px; }
-.header-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+#messages { 
+  flex: 1; overflow-y: auto; padding: 20px; 
+  display: flex; flex-direction: column; gap: 15px;
+}
 
-/* 訊息區域 */
-#messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; }
-
-.msg-row { display: flex; align-items: flex-end; gap: 12px; max-width: 85%; animation: slideIn 0.3s ease-out; }
+/* 訊息氣泡 - 禁止選取 */
+.msg-row { display: flex; align-items: flex-end; gap: 10px; max-width: 85%; }
 .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
 
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: #334155; object-fit: cover; }
+
 .bubble {
-  padding: 12px 18px; border-radius: 20px; font-size: 0.95rem; line-height: 1.5;
-  position: relative; transition: transform 0.1s; cursor: pointer;
+  padding: 10px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4;
+  cursor: pointer; position: relative;
+  user-select: none; -webkit-user-select: none; /* 禁止文字選取 */
 }
 .msg-row.mine .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
 .msg-row.other .bubble { background: #334155; color: #f1f5f9; border-bottom-left-radius: 4px; }
-.bubble:active { transform: scale(0.96); }
 
-/* 自定義長按選單 */
+/* ===== 輸入框區塊 (確保顯示) ===== */
+footer { 
+  padding: 15px 20px; background: rgba(15, 23, 42, 1); 
+  display: flex; gap: 10px; border-top: 1px solid var(--glass-border);
+  z-index: 100;
+}
+.input-wrapper { 
+  flex: 1; background: #1e293b; border-radius: 20px; 
+  padding: 0 15px; border: 1px solid var(--glass-border);
+  display: flex; align-items: center;
+}
+footer input { 
+  flex: 1; background: transparent; border: none; color: white; 
+  font-size: 1rem; height: 44px;
+}
+.btn-send { 
+  width: 44px; height: 44px; border-radius: 50%; border: none; 
+  background: var(--primary); color: white; cursor: pointer; 
+}
+
+/* ===== 長按選單 ===== */
 #contextMenu {
-  position: fixed; display: none; background: #1e293b; border: 1px solid var(--glass-border);
-  border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); z-index: 20000; width: 180px; overflow: hidden;
+  position: fixed; display: none; background: #1e293b; 
+  border: 1px solid var(--glass-border); border-radius: 12px; 
+  width: 160px; z-index: 20000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 .menu-item {
-  padding: 14px 18px; display: flex; align-items: center; gap: 12px; color: #e2e8f0;
-  cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+  padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+  cursor: pointer; font-size: 0.9rem; color: #e2e8f0;
 }
 .menu-item:hover { background: rgba(255,255,255,0.1); }
 .menu-item.danger { color: #f87171; }
 
-/* 管理員面板 (Modal) */
+/* ===== 管理面板 ===== */
 #adminModal {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-  display: none; justify-content: center; align-items: center; z-index: 20001;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: none; justify-content: center; align-items: center; z-index: 21000;
 }
 .admin-card {
-  background: #1e293b; width: 90%; max-width: 600px; border-radius: 24px;
+  background: #1e293b; width: 95%; max-width: 600px; border-radius: 20px;
   max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;
 }
-.admin-header { padding: 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; }
-.admin-list { flex: 1; overflow-y: auto; }
+.admin-list { flex: 1; overflow-y: auto; padding: 10px; }
 .user-item {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-
-/* Footer 輸入框 */
-footer { padding: 20px; display: flex; gap: 12px; background: rgba(15, 23, 42, 0.9); }
-.input-box { flex: 1; background: #1e293b; border-radius: 25px; padding: 0 20px; border: 1px solid var(--glass-border); display: flex; align-items: center; }
-footer input { flex: 1; background: transparent; border: none; color: white; font-size: 1rem; height: 50px; }
-.btn-send { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-@keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
+
 <body>
 
 <div id="login">
   <div class="login-card">
-    <h1>Chat</h1>
-    <p>Version 2.2</p>
+    <h1 style="margin:0; font-size:2.5rem">Kreon</h1>
+    <p style="color:var(--text-muted)">請登入以開始對話</p>
     <button id="loginBtn" class="google-btn">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt="Google Logo">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       <span>使用 Google 帳號登入</span>
     </button>
   </div>
@@ -158,16 +157,12 @@ footer input { flex: 1; background: transparent; border: none; color: white; fon
 
 <div id="chat">
   <header>
-    <div style="display:flex; align-items:center; gap:12px">
-        <span style="font-weight:800; font-size:1.3rem">Chat</span>
-        <button id="adminBtn" style="display:none; background:rgba(251,191,36,0.1); color:#fbbf24; border:1px solid #fbbf24; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:700; cursor:pointer">管理員面板</button>
+    <div>
+        <span style="font-weight:800; font-size:1.2rem">Kreon</span>
+        <button id="adminBtn" style="display:none; background:rgba(251,191,36,0.1); color:#fbbf24; border:1px solid #fbbf24; padding:4px 8px; border-radius:6px; font-size:0.7rem; margin-left:10px; cursor:pointer">管理</button>
     </div>
-    
-    <div style="display:flex; align-items:center; gap:12px">
-        <div class="header-user">
-            <img id="myAvatar" src="" class="header-avatar">
-            <span id="myName" style="font-size:0.85rem; font-weight:600"></span>
-        </div>
+    <div style="display:flex; align-items:center; gap:10px">
+        <span id="online" style="font-size:0.8rem; color:var(--text-muted)">0 人在線</span>
         <button id="logoutBtn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer"><span class="material-icons-round">logout</span></button>
     </div>
   </header>
@@ -175,24 +170,24 @@ footer input { flex: 1; background: transparent; border: none; color: white; fon
   <div id="messages"></div>
 
   <footer>
-    <div class="input-box">
-      <input id="msgInput" type="text" placeholder="輸入訊息..." autocomplete="off" />
+    <div class="input-wrapper">
+      <input id="msgInput" placeholder="輸入訊息…" autocomplete="off" />
     </div>
     <button id="sendBtn" class="btn-send"><span class="material-icons-round">send</span></button>
   </footer>
 </div>
 
 <div id="contextMenu">
-  <div class="menu-item" id="menuCopy"><span class="material-icons-round">content_copy</span> 複製內容</div>
-  <div class="menu-item" id="menuReport"><span class="material-icons-round">report</span> 舉報訊息</div>
-  <div class="menu-item danger" id="menuDelete" style="display:none"><span class="material-icons-round">delete</span> 刪除訊息</div>
+  <div class="menu-item" id="menuCopy"><span class="material-icons-round">content_copy</span> 複製</div>
+  <div class="menu-item" id="menuReport"><span class="material-icons-round">report</span> 舉報</div>
+  <div class="menu-item danger" id="menuDelete" style="display:none"><span class="material-icons-round">delete</span> 刪除</div>
 </div>
 
 <div id="adminModal">
   <div class="admin-card">
-    <div class="admin-header">
-      <h3 style="margin:0">所有帳號狀態</h3>
-      <span id="closeAdmin" style="cursor:pointer" class="material-icons-round">close</span>
+    <div style="padding:20px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between">
+        <h3 style="margin:0">管理員選單</h3>
+        <span id="closeAdmin" style="cursor:pointer" class="material-icons-round">close</span>
     </div>
     <div class="admin-list" id="adminUserList"></div>
   </div>
@@ -203,7 +198,6 @@ footer input { flex: 1; background: transparent; border: none; color: white; fon
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ===== 初始化 ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
   authDomain: "kreon-chat-web.firebaseapp.com",
@@ -217,10 +211,10 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.database();
-const ADMIN_EMAIL = "oliver2013.tw@gmail.com";
-let currentMsgData = null;
+const ADMIN = "oliver2013.tw@gmail.com";
+let currentMsg = null;
 
-/* ===== Auth 邏輯 ===== */
+/* ===== 核心流程 ===== */
 auth.onAuthStateChanged(async user => {
   if (!user) {
     document.getElementById("login").style.display = "flex";
@@ -228,68 +222,55 @@ auth.onAuthStateChanged(async user => {
     return;
   }
 
-  // 檢查封禁
   const bannedSnap = await db.ref("banned/" + user.uid).get();
   if (bannedSnap.exists()) {
-    alert("你的帳號已被封禁。");
+    alert("⛔ 你已被封禁。");
     auth.signOut();
     return;
   }
 
-  // 自動同步用戶資料 (鎖定無法由前端更改)
+  // 同步用戶資料 (為了給管理員看)
   db.ref("users/" + user.uid).update({
     name: user.displayName,
     email: user.email,
     photo: user.photoURL,
-    lastSeen: firebase.database.ServerValue.TIMESTAMP
+    lastSeen: Date.now()
   });
 
-  // UI 更新
   document.getElementById("login").style.display = "none";
   document.getElementById("chat").style.display = "flex";
-  document.getElementById("myName").textContent = user.displayName;
-  document.getElementById("myAvatar").src = user.photoURL;
-
-  if (user.email === ADMIN_EMAIL) {
-    document.getElementById("adminBtn").style.display = "block";
-  }
+  if (user.email === ADMIN) document.getElementById("adminBtn").style.display = "block";
 
   setupPresence(user);
   loadMessages(user);
 });
 
-// 在線偵測
 function setupPresence(user) {
-  const onlineRef = db.ref("online/" + user.uid);
-  db.ref(".info/connected").on("value", snap => {
-    if (snap.val()) {
-      onlineRef.set(true);
-      onlineRef.onDisconnect().remove();
-    }
+  const ref = db.ref("online/" + user.uid);
+  ref.set(true);
+  ref.onDisconnect().remove();
+  db.ref("online").on("value", snap => {
+    document.getElementById("online").textContent = snap.numChildren() + " 人在線";
   });
 }
 
-// 載入訊息
 function loadMessages(user) {
   const container = document.getElementById("messages");
   container.innerHTML = "";
   db.ref("messages").limitToLast(50).on("child_added", snap => {
     const m = snap.val();
-    const isMe = (m.uid === user.uid);
+    const isMe = m.uid === user.uid;
     const row = document.createElement("div");
     row.className = `msg-row ${isMe ? 'mine' : 'other'}`;
     row.innerHTML = `
-      ${!isMe ? `<img src="${m.photoURL}" class="header-avatar">` : ''}
-      <div class="msg-content">
-        ${!isMe ? `<span style="font-size:0.7rem; color:var(--text-muted); margin-left:5px">${m.name}</span>` : ''}
-        <div class="bubble" data-id="${snap.key}" data-text="${m.text}" data-uid="${m.uid}">
-          ${m.text}
-        </div>
+      ${!isMe ? `<img src="${m.photoURL || ''}" class="avatar">` : ''}
+      <div class="bubble" data-id="${snap.key}" data-text="${m.text}">
+        ${m.text}
       </div>
     `;
     const bubble = row.querySelector('.bubble');
     
-    // 電腦右鍵
+    // 右鍵
     bubble.oncontextmenu = e => { e.preventDefault(); showMenu(e.pageX, e.pageY, bubble.dataset); };
     // 手機長按
     let timer;
@@ -301,34 +282,34 @@ function loadMessages(user) {
   });
 }
 
-/* ===== 選單功能 ===== */
+/* ===== 選單邏輯 ===== */
 const menu = document.getElementById("contextMenu");
 function showMenu(x, y, data) {
-  currentMsgData = data;
+  currentMsg = data;
   menu.style.display = "block";
-  menu.style.left = Math.min(x, window.innerWidth - 190) + "px";
+  menu.style.left = Math.min(x, window.innerWidth - 170) + "px";
   menu.style.top = y + "px";
-  document.getElementById("menuDelete").style.display = (auth.currentUser.email === ADMIN_EMAIL) ? "flex" : "none";
+  document.getElementById("menuDelete").style.display = (auth.currentUser.email === ADMIN) ? "flex" : "none";
 }
 window.onclick = () => menu.style.display = "none";
 
 document.getElementById("menuCopy").onclick = () => {
-  navigator.clipboard.writeText(currentMsgData.text);
-  alert("已複製到剪貼簿");
+  navigator.clipboard.writeText(currentMsg.text);
+  alert("已複製");
 };
 document.getElementById("menuReport").onclick = () => {
-  db.ref("reports").push({ msgId: currentMsgData.id, reporter: auth.currentUser.email, time: Date.now() });
-  alert("已提交舉報");
+  db.ref("reports").push({ msgId: currentMsg.id, by: auth.currentUser.email });
+  alert("已舉報");
 };
 document.getElementById("menuDelete").onclick = () => {
-  if(confirm("確定刪除此訊息？")) db.ref("messages/" + currentMsgData.id).remove();
+  if(confirm("刪除此訊息？")) db.ref("messages/" + currentMsg.id).remove();
 };
 
-/* ===== 管理員儀表板 ===== */
+/* ===== 管理面板 ===== */
 document.getElementById("adminBtn").onclick = async () => {
   document.getElementById("adminModal").style.display = "flex";
   const list = document.getElementById("adminUserList");
-  list.innerHTML = "<p style='padding:20px'>同步中...</p>";
+  list.innerHTML = "<p style='padding:20px'>載入中...</p>";
 
   const [uSnap, oSnap, bSnap] = await Promise.all([
     db.ref("users").get(), db.ref("online").get(), db.ref("banned").get()
@@ -347,40 +328,34 @@ document.getElementById("adminBtn").onclick = async () => {
     const isBanned = !!banned[uid];
 
     item.innerHTML = `
-      <div style="display:flex; align-items:center; gap:12px">
-        <img src="${u.photo}" style="width:36px; height:36px; border-radius:50%">
+      <div style="display:flex; align-items:center; gap:10px">
+        <img src="${u.photo}" style="width:30px;height:30px;border-radius:50%">
         <div>
-          <div style="font-weight:600; font-size:0.9rem">${u.name} ${isOnline ? '<span style="color:#22c55e; font-size:0.6rem">● ONLINE</span>' : ''}</div>
-          <div style="font-size:0.75rem; color:var(--text-muted)">${u.email}</div>
+          <div style="font-size:0.8rem;font-weight:600">${u.name} ${isOnline ? '<span style="color:#22c55e">●</span>':''}</div>
+          <div style="font-size:0.6rem;color:var(--text-muted)">${u.email}</div>
         </div>
       </div>
-      <div>
-        ${u.email === ADMIN_EMAIL ? '' : `<button onclick="toggleBan('${uid}', '${u.email}', ${isBanned})" style="background:${isBanned?'#22c55e':'#ef4444'}; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer">${isBanned?'解封':'封鎖'}</button>`}
-      </div>
+      <button onclick="toggleBan('${uid}', ${isBanned})" style="background:${isBanned?'#22c55e':'#ef4444'}; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:0.7rem">${isBanned?'解封':'封鎖'}</button>
     `;
     list.appendChild(item);
   });
 };
 
-window.toggleBan = async (uid, email, isBanned) => {
-  if (isBanned) {
-    await db.ref("banned/" + uid).remove();
-  } else {
-    if(confirm(`確定封鎖 ${email}？`)) await db.ref("banned/" + uid).set({ email, time: Date.now() });
-  }
-  document.getElementById("adminBtn").click(); 
+window.toggleBan = async (uid, isBanned) => {
+  if (isBanned) await db.ref("banned/" + uid).remove();
+  else await db.ref("banned/" + uid).set(true);
+  document.getElementById("adminBtn").click(); // 重新整理列表
 };
-
 document.getElementById("closeAdmin").onclick = () => document.getElementById("adminModal").style.display = "none";
 
-/* ===== 收發訊息 ===== */
+/* ===== 基本操作 ===== */
 function send() {
-  const val = document.getElementById("msgInput").value.trim();
-  if (!val) return;
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text) return;
   const u = auth.currentUser;
   db.ref("messages").push({
     uid: u.uid, name: u.displayName, email: u.email,
-    photoURL: u.photoURL, text: val, time: firebase.database.ServerValue.TIMESTAMP
+    photoURL: u.photoURL, text, time: Date.now() // 加入 photoURL 解決頭像問題
   });
   document.getElementById("msgInput").value = "";
 }
@@ -388,7 +363,7 @@ function send() {
 document.getElementById("sendBtn").onclick = send;
 document.getElementById("msgInput").onkeydown = e => e.key === "Enter" && send();
 document.getElementById("loginBtn").onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-document.getElementById("logoutBtn").onclick = () => confirm("確定登出？") && auth.signOut();
+document.getElementById("logoutBtn").onclick = () => auth.signOut();
 </script>
 </body>
 </html>
