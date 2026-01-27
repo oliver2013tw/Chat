@@ -2,185 +2,165 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat Luxury Pro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Chat Nova</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
 <style>
 :root{
-    --bg:#020617;
-    --glass:rgba(255,255,255,.06);
-    --border:rgba(255,255,255,.1);
-    --primary:#6366f1;
-    --danger:#ef4444;
+ --bg:#020617;
+ --panel:rgba(255,255,255,.06);
+ --border:rgba(255,255,255,.12);
+ --primary:#6366f1;
+ --text-dim:#94a3b8;
 }
 
 *{box-sizing:border-box}
-body,html{
-    margin:0;height:100%;
-    background:var(--bg);
-    color:#fff;
-    font-family:'Plus Jakarta Sans',sans-serif;
-    overflow:hidden;
+html,body{
+ margin:0;height:100%;
+ background:var(--bg);
+ color:white;
+ font-family:Inter,sans-serif;
+ overflow:hidden;
 }
 
 /* ===== 背景 ===== */
 .bg{
-    position:fixed;inset:0;
-    background:
-      radial-gradient(circle at 80% 10%,rgba(99,102,241,.15),transparent 40%),
-      radial-gradient(circle at 10% 90%,rgba(56,189,248,.12),transparent 40%);
-    z-index:-1;
+ position:fixed;inset:0;
+ background:
+  radial-gradient(circle at 80% 10%,rgba(99,102,241,.18),transparent 45%),
+  radial-gradient(circle at 20% 90%,rgba(56,189,248,.14),transparent 45%);
+ z-index:-1;
 }
+
+/* ===== Loading ===== */
+#loading{
+ position:fixed;inset:0;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:var(--bg);
+ z-index:9999;
+}
+.loader{
+ width:46px;height:46px;
+ border-radius:50%;
+ border:4px solid rgba(255,255,255,.15);
+ border-top-color:var(--primary);
+ animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ===== 登入 ===== */
 #login{
-    position:fixed;inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+ display:none;
+ position:fixed;inset:0;
+ align-items:center;
+ justify-content:center;
 }
 .login-card{
-    width:90%;max-width:420px;
-    padding:50px 40px;
-    background:var(--glass);
-    backdrop-filter:blur(30px);
-    border:1px solid var(--border);
-    border-radius:32px;
-    text-align:center;
+ width:92%;max-width:420px;
+ padding:48px 40px;
+ border-radius:28px;
+ background:var(--panel);
+ backdrop-filter:blur(28px);
+ border:1px solid var(--border);
+ text-align:center;
 }
 .login-card h1{
-    font-size:3rem;margin:0;
+ font-size:3rem;margin:0;
+ letter-spacing:.08em;
 }
-#loginStatus{
-    color:#94a3b8;
-    margin:25px 0 35px;
+.login-card p{
+ margin:24px 0 36px;
+ color:var(--text-dim);
 }
 .login-btn{
-    width:100%;
-    padding:16px;
-    border:none;
-    border-radius:100px;
-    font-weight:800;
-    cursor:pointer;
-    background:white;
-    color:black;
+ width:100%;
+ padding:16px;
+ border:none;
+ border-radius:100px;
+ font-weight:700;
+ background:white;
+ color:black;
+ cursor:pointer;
 }
 
 /* ===== 聊天 ===== */
 #chat{
-    display:none;
-    height:100%;
-    flex-direction:column;
+ display:none;
+ height:100%;
+ flex-direction:column;
 }
 
 header{
-    height:70px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:0 20px;
-    border-bottom:1px solid var(--border);
-    background:rgba(2,6,23,.8);
-    backdrop-filter:blur(20px);
-}
-.admin-btn{
-    display:none;
-    font-size:11px;
-    font-weight:800;
-    padding:6px 12px;
-    border:none;
-    border-radius:10px;
-    background:linear-gradient(135deg,#facc15,#f59e0b);
-    cursor:pointer;
+ height:70px;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ padding:0 20px;
+ border-bottom:1px solid var(--border);
+ background:rgba(2,6,23,.8);
+ backdrop-filter:blur(20px);
 }
 
 #messages{
-    flex:1;
-    overflow-y:auto;
-    padding:20px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
+ flex:1;
+ padding:20px;
+ overflow-y:auto;
+ display:flex;
+ flex-direction:column;
+ gap:14px;
 }
-.msg-row{max-width:80%}
-.mine{align-self:flex-end;text-align:right}
-.other{align-self:flex-start}
 
-.user-name{
-    font-size:10px;
-    color:#94a3b8;
-    margin-bottom:4px;
+.msg{max-width:80%}
+.me{align-self:flex-end;text-align:right}
+
+.name{
+ font-size:11px;
+ color:var(--text-dim);
+ margin-bottom:4px;
 }
 .bubble{
-    padding:12px 18px;
-    border-radius:20px;
-    background:var(--glass);
-    border:1px solid var(--border);
+ padding:12px 18px;
+ border-radius:20px;
+ background:var(--panel);
+ border:1px solid var(--border);
 }
-.mine .bubble{
-    background:var(--primary);
-    border:none;
-    border-bottom-right-radius:4px;
+.me .bubble{
+ background:var(--primary);
+ border:none;
+ border-bottom-right-radius:4px;
 }
 
 footer{
-    height:80px;
-    padding:10px 20px;
-    display:flex;
-    gap:10px;
-    border-top:1px solid var(--border);
-    background:rgba(2,6,23,.85);
+ height:78px;
+ padding:10px 20px;
+ display:flex;
+ gap:10px;
+ border-top:1px solid var(--border);
+ background:rgba(2,6,23,.85);
 }
 input{
-    flex:1;
-    border-radius:20px;
-    border:1px solid var(--border);
-    background:rgba(255,255,255,.05);
-    padding:0 16px;
-    color:white;
-    font-size:16px;
+ flex:1;
+ border-radius:18px;
+ border:1px solid var(--border);
+ background:rgba(255,255,255,.05);
+ color:white;
+ padding:0 14px;
+ font-size:15px;
 }
-.send-btn{
-    width:45px;height:45px;
-    border:none;
-    border-radius:50%;
-    background:var(--primary);
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-/* ===== Modal ===== */
-.modal{
-    position:fixed;inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.6);
-    backdrop-filter:blur(10px);
-    z-index:9999;
-}
-.modal-box{
-    width:300px;
-    background:#020617;
-    border:1px solid var(--border);
-    border-radius:24px;
-    padding:25px;
-    text-align:center;
-}
-.modal-box button{
-    margin-top:20px;
-    width:100%;
-    padding:10px;
-    border:none;
-    border-radius:14px;
-    background:var(--primary);
-    color:white;
-    font-weight:700;
+.send{
+ width:46px;height:46px;
+ border:none;
+ border-radius:50%;
+ background:var(--primary);
+ color:white;
+ display:flex;
+ align-items:center;
+ justify-content:center;
 }
 </style>
 </head>
@@ -188,47 +168,30 @@ input{
 <body>
 <div class="bg"></div>
 
-<!-- 登入 -->
+<div id="loading"><div class="loader"></div></div>
+
 <div id="login">
-  <div class="login-card">
-    <h1>CHAT</h1>
-    <p id="loginStatus">請登入以開始對話</p>
-    <button class="login-btn" onclick="handleLogin()">使用 Google 登入</button>
-  </div>
+ <div class="login-card">
+  <h1>CHAT</h1>
+  <p id="loginText">登入以開始對話</p>
+  <button class="login-btn" onclick="login()">使用 Google 登入</button>
+ </div>
 </div>
 
-<!-- 聊天 -->
 <div id="chat">
-  <header>
-    <div>
-      <strong style="font-size:1.3rem">Chat</strong>
-      <button id="mgrBtn" class="admin-btn">管理</button>
-    </div>
-    <div style="text-align:right;font-size:11px">
-      <div id="onlineCount">載入中…</div>
-      <span onclick="auth.signOut()" style="color:var(--danger);cursor:pointer">登出</span>
-    </div>
-  </header>
-
-  <div id="messages"></div>
-
-  <footer>
-    <input id="msgInput" placeholder="輸入訊息…">
-    <button class="send-btn" onclick="sendMessage()">
-      <span class="material-icons-round">send</span>
-    </button>
-  </footer>
+ <header>
+  <strong>Chat Nova</strong>
+  <span id="online" style="font-size:12px;color:var(--text-dim)">—</span>
+ </header>
+ <div id="messages"></div>
+ <footer>
+  <input id="msg" placeholder="輸入訊息…">
+  <button class="send" onclick="send()">
+   <span class="material-icons-round">send</span>
+  </button>
+ </footer>
 </div>
 
-<!-- Modal -->
-<div id="modal" class="modal">
-  <div class="modal-box">
-    <div id="modalText"></div>
-    <button onclick="closeModal()">確定</button>
-  </div>
-</div>
-
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -238,80 +201,69 @@ firebase.initializeApp({
  apiKey:"AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
  authDomain:"kreon-chat-web.firebaseapp.com",
  databaseURL:"https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
- projectId:"kreon-chat-web",
+ projectId:"kreon-chat-web"
 });
 
 const auth=firebase.auth();
 const db=firebase.database();
-const ADMIN="oliver2013.tw@gmail.com";
 
-function showModal(t){
- modalText.innerText=t;
- modal.style.display="flex";
-}
-function closeModal(){
- modal.style.display="none";
+/* 🔑 關鍵：持久化 */
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+/* 🔑 強制 finalize redirect */
+auth.getRedirectResult().finally(startAuth);
+
+function startAuth(){
+ auth.onAuthStateChanged(u=>{
+  loading.style.display="none";
+
+  if(!u){
+   login.style.display="flex";
+   chat.style.display="none";
+   return;
+  }
+
+  login.style.display="none";
+  chat.style.display="flex";
+  init(u);
+ });
 }
 
-/* 登入 */
-function handleLogin(){
- loginStatus.innerText="登入中…";
+function login(){
+ loginText.innerText="導向 Google 中…";
  const p=new firebase.auth.GoogleAuthProvider();
- /Mobi|Android|iPhone/i.test(navigator.userAgent)
+ /Mobi|Android/i.test(navigator.userAgent)
  ? auth.signInWithRedirect(p)
  : auth.signInWithPopup(p).catch(()=>auth.signInWithRedirect(p));
 }
 
-/* 核心：唯一可信 */
-auth.onAuthStateChanged(async u=>{
- if(!u){
-  login.style.display="flex";
-  chat.style.display="none";
-  return;
- }
-
- login.style.display="none";
- chat.style.display="flex";
-
- if(u.email===ADMIN) mgrBtn.style.display="inline-block";
-
- const ban=await db.ref("banned/"+u.uid).get();
- if(ban.exists()){
-  showModal("此帳號已被封鎖");
-  auth.signOut();
-  return;
- }
-
- initChat(u);
-});
-
-function initChat(u){
- const online=db.ref("online/"+u.uid);
- online.set(true); online.onDisconnect().remove();
+function init(u){
+ const o=db.ref("online/"+u.uid);
+ o.set(true); o.onDisconnect().remove();
  db.ref("online").on("value",s=>{
-  onlineCount.innerText=s.numChildren()+" 人在線";
+  online.innerText=s.numChildren()+" 人在線";
  });
 
  messages.innerHTML="";
  db.ref("messages").limitToLast(50).on("child_added",s=>{
   const m=s.val();
-  const div=document.createElement("div");
-  div.className="msg-row "+(m.uid===u.uid?"mine":"other");
-  div.innerHTML=`<div class="user-name">${m.name}</div><div class="bubble">${m.text}</div>`;
-  messages.appendChild(div);
+  const d=document.createElement("div");
+  d.className="msg "+(m.uid===u.uid?"me":"");
+  d.innerHTML=`<div class="name">${m.name}</div><div class="bubble">${m.text}</div>`;
+  messages.appendChild(d);
   messages.scrollTop=messages.scrollHeight;
  });
 }
 
-function sendMessage(){
- if(!msgInput.value.trim())return;
+function send(){
+ if(!msg.value.trim())return;
  db.ref("messages").push({
   uid:auth.currentUser.uid,
   name:auth.currentUser.displayName,
-  text:msgInput.value,
+  text:msg.value,
   time:Date.now()
  });
- msgInput.value="";
+ msg.value="";
 }
 </script>
 </body>
