@@ -1,280 +1,160 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Chat Aurora</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>聊天室</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-:root{
- --bg:#020617;
- --panel:rgba(255,255,255,.06);
- --border:rgba(255,255,255,.12);
- --primary:#6366f1;
- --dim:#94a3b8;
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #1a2a6c, #000);
+  color: white;
 }
 
-*{box-sizing:border-box}
-html,body{
- margin:0;height:100%;
- background:var(--bg);
- color:white;
- font-family:Inter,sans-serif;
- overflow:hidden;
+/* ===== 保底容器（一定顯示） ===== */
+#app {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 背景 */
-.bg{
- position:fixed;inset:0;
- background:
-  radial-gradient(circle at 80% 10%,rgba(99,102,241,.18),transparent 45%),
-  radial-gradient(circle at 20% 90%,rgba(56,189,248,.14),transparent 45%);
- z-index:-1;
+/* ===== 卡片 ===== */
+.card {
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(14px);
+  border-radius: 18px;
+  padding: 28px;
+  width: 92%;
+  max-width: 380px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.4);
+  text-align: center;
 }
 
-/* Loading */
-#loading{
- position:fixed;inset:0;
- display:flex;
- align-items:center;
- justify-content:center;
- background:var(--bg);
- z-index:9999;
-}
-.loader{
- width:44px;height:44px;
- border-radius:50%;
- border:4px solid rgba(255,255,255,.15);
- border-top-color:var(--primary);
- animation:spin 1s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Login */
-#login{
- position:fixed;inset:0;
- display:none;
- align-items:center;
- justify-content:center;
-}
-.login-card{
- width:92%;max-width:420px;
- padding:48px 40px;
- border-radius:28px;
- background:var(--panel);
- backdrop-filter:blur(28px);
- border:1px solid var(--border);
- text-align:center;
-}
-.login-card h1{
- margin:0;
- font-size:3rem;
- letter-spacing:.1em;
-}
-.login-card p{
- margin:22px 0 34px;
- color:var(--dim);
-}
-.login-btn{
- width:100%;
- padding:16px;
- border:none;
- border-radius:100px;
- font-weight:700;
- background:white;
- color:black;
- cursor:pointer;
+button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
 }
 
-/* Chat */
-#chat{
- display:none;
- height:100%;
- flex-direction:column;
+.btn-google {
+  background: white;
+  color: #222;
+  font-weight: 600;
 }
 
-header{
- height:70px;
- display:flex;
- justify-content:space-between;
- align-items:center;
- padding:0 20px;
- border-bottom:1px solid var(--border);
- background:rgba(2,6,23,.8);
- backdrop-filter:blur(20px);
+.hidden { display: none; }
+
+/* ===== Modal ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
 }
 
-#messages{
- flex:1;
- padding:20px;
- overflow-y:auto;
- display:flex;
- flex-direction:column;
- gap:14px;
-}
-
-.msg{max-width:80%}
-.me{align-self:flex-end;text-align:right}
-
-.name{
- font-size:11px;
- color:var(--dim);
- margin-bottom:4px;
-}
-.bubble{
- padding:12px 18px;
- border-radius:20px;
- background:var(--panel);
- border:1px solid var(--border);
-}
-.me .bubble{
- background:var(--primary);
- border:none;
- border-bottom-right-radius:4px;
-}
-
-footer{
- height:78px;
- padding:10px 20px;
- display:flex;
- gap:10px;
- border-top:1px solid var(--border);
- background:rgba(2,6,23,.85);
-}
-input{
- flex:1;
- border-radius:18px;
- border:1px solid var(--border);
- background:rgba(255,255,255,.05);
- color:white;
- padding:0 14px;
- font-size:15px;
-}
-.send{
- width:46px;height:46px;
- border:none;
- border-radius:50%;
- background:var(--primary);
- color:white;
- display:flex;
- align-items:center;
- justify-content:center;
+.modal .card {
+  max-width: 320px;
 }
 </style>
 </head>
 
 <body>
-<div class="bg"></div>
 
-<div id="loading">
-  <div class="loader"></div>
+<div id="app">
+
+  <!-- 登入畫面（預設顯示） -->
+  <div id="login" class="card">
+    <h2>歡迎</h2>
+    <p>請使用 Google 登入</p>
+    <button class="btn-google" onclick="login()">使用 Google 登入</button>
+  </div>
+
+  <!-- 聊天畫面 -->
+  <div id="chat" class="card hidden">
+    <h2>聊天室</h2>
+    <p id="userInfo"></p>
+    <button onclick="logout()">登出</button>
+  </div>
+
 </div>
 
-<div id="login">
- <div class="login-card">
-  <h1>CHAT</h1>
-  <p id="loginText">登入以開始對話</p>
-  <button class="login-btn" onclick="login()">使用 Google 登入</button>
- </div>
+<!-- Modal -->
+<div id="modal" class="modal hidden">
+  <div class="card">
+    <p id="modalText">提示</p>
+    <button onclick="closeModal()">確定</button>
+  </div>
 </div>
-
-<div id="chat">
- <header>
-  <strong>Chat Aurora</strong>
-  <span id="online" style="font-size:12px;color:var(--dim)">—</span>
- </header>
- <div id="messages"></div>
- <footer>
-  <input id="msg" placeholder="輸入訊息…">
-  <button class="send" onclick="send()">
-   <span class="material-icons-round">send</span>
-  </button>
- </footer>
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-firebase.initializeApp({
- apiKey:"AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
- authDomain:"kreon-chat-web.firebaseapp.com",
- databaseURL:"https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
- projectId:"kreon-chat-web"
-});
+/* ===== Firebase 設定（確認你有填） ===== */
+const firebaseConfig = {
+  apiKey: "你的",
+  authDomain: "你的",
+  databaseURL: "你的",
+  projectId: "你的",
+};
 
-const auth=firebase.auth();
-const db=firebase.database();
+firebase.initializeApp(firebaseConfig);
 
-/* ===== 安全初始化 ===== */
-(async()=>{
- try{
-  await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-  await auth.getRedirectResult();
- }catch(e){
-  console.warn("Auth init warning",e);
- }finally{
-  startAuth();
- }
-})();
+const auth = firebase.auth();
 
-function startAuth(){
- auth.onAuthStateChanged(u=>{
-  loading.style.display="none";
+/* ===== UI ===== */
+const loginEl = document.getElementById("login");
+const chatEl  = document.getElementById("chat");
+const userInfo = document.getElementById("userInfo");
 
-  if(!u){
-   login.style.display="flex";
-   chat.style.display="none";
-   return;
+function showModal(text){
+  document.getElementById("modalText").innerText = text;
+  document.getElementById("modal").classList.remove("hidden");
+}
+function closeModal(){
+  document.getElementById("modal").classList.add("hidden");
+}
+
+/* ===== 登入 ===== */
+function login(){
+  showModal("正在跳轉 Google 登入…");
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithRedirect(provider);
+}
+
+function logout(){
+  auth.signOut();
+}
+
+/* ===== 核心：唯一登入判斷 ===== */
+auth.onAuthStateChanged(user => {
+  closeModal();
+
+  if(!user){
+    loginEl.classList.remove("hidden");
+    chatEl.classList.add("hidden");
+    return;
   }
 
-  login.style.display="none";
-  chat.style.display="flex";
-  init(u);
- });
-}
-
-function login(){
- loginText.innerText="導向 Google 中…";
- const p=new firebase.auth.GoogleAuthProvider();
- /Mobi|Android|iPhone/i.test(navigator.userAgent)
- ? auth.signInWithRedirect(p)
- : auth.signInWithPopup(p).catch(()=>auth.signInWithRedirect(p));
-}
-
-function init(u){
- const o=db.ref("online/"+u.uid);
- o.set(true); o.onDisconnect().remove();
-
- db.ref("online").on("value",s=>{
-  online.innerText=s.numChildren()+" 人在線";
- });
-
- messages.innerHTML="";
- db.ref("messages").limitToLast(50).on("child_added",s=>{
-  const m=s.val();
-  const d=document.createElement("div");
-  d.className="msg "+(m.uid===u.uid?"me":"");
-  d.innerHTML=`<div class="name">${m.name}</div><div class="bubble">${m.text}</div>`;
-  messages.appendChild(d);
-  messages.scrollTop=messages.scrollHeight;
- });
-}
-
-function send(){
- if(!msg.value.trim())return;
- db.ref("messages").push({
-  uid:auth.currentUser.uid,
-  name:auth.currentUser.displayName,
-  text:msg.value,
-  time:Date.now()
- });
- msg.value="";
-}
+  loginEl.classList.add("hidden");
+  chatEl.classList.remove("hidden");
+  userInfo.innerText = "你好，" + user.displayName;
+});
 </script>
+
 </body>
 </html>
