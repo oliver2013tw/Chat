@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chat</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -28,7 +27,7 @@ html,body{
   margin:0;
   width:100%;
   height:100%;
-  overflow:hidden;            /* 🔒 關鍵：完全鎖滾輪 */
+  overflow:hidden;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   background:
     radial-gradient(600px 400px at 80% 10%,rgba(99,102,241,.18),transparent 60%),
@@ -43,6 +42,7 @@ html,body{
   display:flex;
   align-items:center;
   justify-content:center;
+  z-index: 100; /* 確保登入層在最上面 */
 }
 
 .login-card{
@@ -84,14 +84,13 @@ html,body{
 
 /* ===== Chat ===== */
 #chat{
-  display:none;
+  display:none; /* 預設隱藏，由 JS 控制顯示 */
   height:100%;
   width:100%;
   max-width:430px;
   margin:auto;
   padding:14px;
-  display:flex;
-  flex-direction:column;
+  flex-direction:column; /* JS 切換為 flex 時會用到 */
 }
 
 #messages{
@@ -109,6 +108,7 @@ html,body{
   border-radius:18px;
   background:var(--card);
   border:1px solid var(--border);
+  word-break: break-all; /* 防止長文字破版 */
 }
 
 .mine{
@@ -137,13 +137,13 @@ html,body{
   background:var(--accent);
   color:white;
   font-weight:700;
+  cursor: pointer;
 }
 </style>
 </head>
 
 <body>
 
-<!-- Login -->
 <div id="login">
   <div class="login-card">
     <h1>Chat</h1>
@@ -151,7 +151,6 @@ html,body{
   </div>
 </div>
 
-<!-- Chat -->
 <div id="chat">
   <div id="messages"></div>
   <div id="inputBar">
@@ -161,58 +160,102 @@ html,body{
 </div>
 
 <script>
-/* Firebase */
-firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-  projectId: "YOUR_PROJECT"
-});
+/* 1. 填入正確的 Firebase 設定 (這是你之前提供的設定) */
+const firebaseConfig = {
+  apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+  authDomain: "kreon-chat-web.firebaseapp.com",
+  databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kreon-chat-web",
+  storageBucket: "kreon-chat-web.firebasestorage.app",
+  messagingSenderId: "497509136448",
+  appId: "1:497509136448:web:4899641de83c4f872d47a5"
+};
+firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.database();
 
-const login = document.getElementById("login");
-const chat  = document.getElementById("chat");
+const loginDiv = document.getElementById("login");
+const chatDiv  = document.getElementById("chat");
+const loginBtn = document.getElementById("loginBtn");
 
-document.getElementById("loginBtn").onclick = ()=>{
-  const p = new firebase.auth.GoogleAuthProvider();
-  const m = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-  m ? auth.signInWithRedirect(p)
-    : auth.signInWithPopup(p).catch(()=>auth.signInWithRedirect(p));
+/* 2. 登入按鈕邏輯 (修正點擊無反應問題) */
+loginBtn.onclick = () => {
+  loginBtn.innerText = "處理中..."; // 給使用者反饋
+  const provider = new firebase.auth.GoogleAuthProvider();
+  
+  // 嚴格判斷行動裝置
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    // 手機：強制跳轉
+    auth.signInWithRedirect(provider);
+  } else {
+    // 電腦：嘗試彈窗，失敗則跳轉
+    auth.signInWithPopup(provider).catch((error) => {
+      console.log("Popup blocked, trying redirect...", error);
+      auth.signInWithRedirect(provider);
+    });
+  }
 };
 
-auth.onAuthStateChanged(user=>{
-  if(!user){
-    login.style.display="flex";
-    chat.style.display="none";
+/* 3. 處理跳轉後的結果 (解決手機登入後卡住的問題) */
+auth.getRedirectResult().then((result) => {
+  if (result.user) {
+    console.log("Redirect login success");
+  }
+}).catch((error) => {
+  console.error(error);
+  loginBtn.innerText = "使用 Google 登入"; // 失敗還原按鈕文字
+  alert("登入失敗，請重試");
+});
+
+/* 4. 監聽登入狀態 (控制頁面切換) */
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    // 未登入
+    loginDiv.style.display = "flex";
+    chatDiv.style.display = "none";
+    loginBtn.innerText = "使用 Google 登入";
     return;
   }
-  login.style.display="none";
-  chat.style.display="flex";
+  
+  // 已登入
+  loginDiv.style.display = "none";
+  chatDiv.style.display = "flex"; // 這裡開啟 Flex
   initChat(user);
 });
 
-function initChat(user){
+/* 5. 聊天室邏輯 */
+function initChat(user) {
   const box = document.getElementById("messages");
   const ref = db.ref("messages");
-  box.innerHTML="";
+  box.innerHTML = ""; // 清空舊訊息
 
-  ref.limitToLast(50).on("child_added", s=>{
-    const m=s.val();
-    const d=document.createElement("div");
-    d.className="msg "+(m.uid===user.uid?"mine":"");
-    d.innerText=m.text;
+  // 避免重複綁定監聽器
+  ref.limitToLast(50).off(); 
+  
+  ref.limitToLast(50).on("child_added", s => {
+    const m = s.val();
+    const d = document.createElement("div");
+    d.className = "msg " + (m.uid === user.uid ? "mine" : "");
+    d.innerText = m.text;
     box.appendChild(d);
-    box.scrollTop=box.scrollHeight;
+    box.scrollTop = box.scrollHeight;
   });
 
-  sendBtn.onclick=()=>{
-    const t=msgInput.value.trim();
-    if(!t) return;
-    ref.push({uid:user.uid,text:t});
-    msgInput.value="";
+  const send = () => {
+    const t = msgInput.value.trim();
+    if (!t) return;
+    ref.push({ uid: user.uid, text: t });
+    msgInput.value = "";
   };
+
+  document.getElementById("sendBtn").onclick = send;
+  // 支援按 Enter 發送
+  document.getElementById("msgInput").onkeydown = (e) => {
+    if(e.key === "Enter") send();
+  }
 }
 </script>
 </body>
