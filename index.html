@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kreon Chat</title>
+<title>Chat</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -11,7 +11,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{
+  box-sizing:border-box;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+}
 body{
   margin:0;
   min-height:100vh;
@@ -74,8 +77,14 @@ body{
   background:rgba(255,255,255,.15);
 }
 
-.mine{align-self:flex-end;background:#2563eb}
-.other{align-self:flex-start}
+.mine{
+  align-self:flex-end;
+  background:#2563eb;
+}
+
+.other{
+  align-self:flex-start;
+}
 
 #inputBar{
   display:flex;
@@ -129,7 +138,7 @@ body{
 
 <!-- Login -->
 <div id="login">
-  <h1>Kreon Chat</h1>
+  <h1>Chat</h1>
   <button id="loginBtn">使用 Google 登入</button>
 </div>
 
@@ -156,7 +165,7 @@ firebase.initializeApp({
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
   databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-  projectId: "YOUR_PROJECT",
+  projectId: "YOUR_PROJECT"
 });
 
 /* ===== Init ===== */
@@ -169,22 +178,26 @@ const chat  = document.getElementById("chat");
 /* ===== Modal ===== */
 const modal = document.getElementById("modal");
 const modalText = document.getElementById("modalText");
-document.getElementById("modalOk").onclick = ()=>modal.style.display="none";
+document.getElementById("modalOk").onclick = () => {
+  modal.style.display = "none";
+};
 
-function showModal(t){
-  modalText.innerText = t;
-  modal.style.display="flex";
+function showModal(text){
+  modalText.innerText = text;
+  modal.style.display = "flex";
 }
 
 /* ===== Login ===== */
-document.getElementById("loginBtn").onclick = ()=>{
+document.getElementById("loginBtn").onclick = () => {
   const provider = new firebase.auth.GoogleAuthProvider();
   const mobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
   mobile ? auth.signInWithRedirect(provider)
-         : auth.signInWithPopup(provider);
+         : auth.signInWithPopup(provider).catch(()=>{
+             auth.signInWithRedirect(provider);
+           });
 };
 
-/* ===== Auth State (唯一可信) ===== */
+/* ===== Auth State（唯一切畫面來源） ===== */
 auth.onAuthStateChanged(user=>{
   if(!user){
     login.style.display="flex";
@@ -201,22 +214,22 @@ auth.onAuthStateChanged(user=>{
 function initChat(user){
   const msgRef = db.ref("messages");
   const box = document.getElementById("messages");
-  box.innerHTML="";
+  box.innerHTML = "";
 
-  msgRef.limitToLast(50).on("child_added",s=>{
-    const m=s.val();
-    const d=document.createElement("div");
-    d.className="msg "+(m.uid===user.uid?"mine":"other");
-    d.innerText=m.text;
-    box.appendChild(d);
-    box.scrollTop=box.scrollHeight;
+  msgRef.limitToLast(50).on("child_added", snap => {
+    const m = snap.val();
+    const div = document.createElement("div");
+    div.className = "msg " + (m.uid === user.uid ? "mine" : "other");
+    div.innerText = m.text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
   });
 
-  document.getElementById("sendBtn").onclick=()=>{
-    const t=msgInput.value.trim();
-    if(!t)return;
-    msgRef.push({uid:user.uid,text:t});
-    msgInput.value="";
+  document.getElementById("sendBtn").onclick = () => {
+    const text = msgInput.value.trim();
+    if(!text) return;
+    msgRef.push({ uid:user.uid, text });
+    msgInput.value = "";
   };
 }
 </script>
