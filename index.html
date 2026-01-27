@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chat</title>
 
 <!-- Firebase -->
@@ -11,54 +11,86 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
+:root{
+  --bg1:#020617;
+  --bg2:#020024;
+  --card:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.15);
+  --accent:#6366f1;
+}
+
 *{
   box-sizing:border-box;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+  -webkit-tap-highlight-color:transparent;
 }
-body{
+
+html,body{
   margin:0;
-  min-height:100vh;
-  background:linear-gradient(135deg,#020617,#020024,#0f172a);
+  width:100%;
+  height:100%;
+  overflow:hidden;            /* 🔒 關鍵：完全鎖滾輪 */
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(600px 400px at 80% 10%,rgba(99,102,241,.18),transparent 60%),
+    linear-gradient(135deg,var(--bg1),var(--bg2));
   color:white;
+}
+
+/* ===== Login ===== */
+#login{
+  position:fixed;
+  inset:0;
   display:flex;
   align-items:center;
   justify-content:center;
 }
 
-/* ===== Login ===== */
-#login{
-  display:flex;
-  flex-direction:column;
-  gap:20px;
-  padding:32px;
-  border-radius:24px;
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(14px);
-  box-shadow:0 20px 60px rgba(0,0,0,.4);
-}
-
-#login h1{
-  margin:0;
+.login-card{
+  width:320px;
+  padding:42px 36px;
+  border-radius:28px;
+  background:var(--card);
+  backdrop-filter:blur(22px);
+  border:1px solid var(--border);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,.55),
+    inset 0 0 0 1px rgba(255,255,255,.05);
   text-align:center;
-  font-size:24px;
 }
 
-#login button{
-  padding:14px;
-  border-radius:14px;
+.login-card h1{
+  margin:0 0 28px;
+  font-size:28px;
+  font-weight:800;
+  letter-spacing:.4px;
+}
+
+.login-card button{
+  width:100%;
+  padding:15px;
+  border-radius:16px;
   border:none;
   font-size:16px;
+  font-weight:700;
   background:white;
-  color:black;
+  color:#020617;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.login-card button:active{
+  transform:scale(.97);
 }
 
 /* ===== Chat ===== */
 #chat{
   display:none;
+  height:100%;
   width:100%;
-  max-width:420px;
-  height:100vh;
-  padding:12px;
+  max-width:430px;
+  margin:auto;
+  padding:14px;
+  display:flex;
   flex-direction:column;
 }
 
@@ -67,69 +99,44 @@ body{
   overflow-y:auto;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:10px;
+  padding-bottom:12px;
 }
 
 .msg{
-  padding:10px 14px;
-  border-radius:14px;
-  max-width:80%;
-  background:rgba(255,255,255,.15);
+  max-width:75%;
+  padding:12px 16px;
+  border-radius:18px;
+  background:var(--card);
+  border:1px solid var(--border);
 }
 
 .mine{
   align-self:flex-end;
-  background:#2563eb;
-}
-
-.other{
-  align-self:flex-start;
+  background:var(--accent);
+  border:none;
 }
 
 #inputBar{
   display:flex;
-  gap:8px;
+  gap:10px;
 }
 
 #inputBar input{
   flex:1;
-  padding:12px;
-  border-radius:12px;
+  padding:14px;
+  border-radius:16px;
   border:none;
+  outline:none;
 }
 
 #inputBar button{
-  padding:12px 16px;
-  border-radius:12px;
+  padding:14px 18px;
+  border-radius:16px;
   border:none;
-}
-
-/* ===== Modal ===== */
-#modal{
-  position:fixed;
-  inset:0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  background:rgba(0,0,0,.45);
-  backdrop-filter:blur(10px);
-  z-index:9999;
-}
-
-#modalCard{
-  background:rgba(255,255,255,.18);
-  padding:24px;
-  border-radius:20px;
-  text-align:center;
-  width:80%;
-  max-width:300px;
-}
-
-#modalCard button{
-  margin-top:16px;
-  padding:10px 20px;
-  border-radius:12px;
-  border:none;
+  background:var(--accent);
+  color:white;
+  font-weight:700;
 }
 </style>
 </head>
@@ -138,8 +145,10 @@ body{
 
 <!-- Login -->
 <div id="login">
-  <h1>Chat</h1>
-  <button id="loginBtn">使用 Google 登入</button>
+  <div class="login-card">
+    <h1>Chat</h1>
+    <button id="loginBtn">使用 Google 登入</button>
+  </div>
 </div>
 
 <!-- Chat -->
@@ -151,16 +160,8 @@ body{
   </div>
 </div>
 
-<!-- Modal -->
-<div id="modal">
-  <div id="modalCard">
-    <div id="modalText">提示</div>
-    <button id="modalOk">確定</button>
-  </div>
-</div>
-
 <script>
-/* 🔥 Firebase 設定（只改這裡） */
+/* Firebase */
 firebase.initializeApp({
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -168,68 +169,49 @@ firebase.initializeApp({
   projectId: "YOUR_PROJECT"
 });
 
-/* ===== Init ===== */
 const auth = firebase.auth();
 const db = firebase.database();
 
 const login = document.getElementById("login");
 const chat  = document.getElementById("chat");
 
-/* ===== Modal ===== */
-const modal = document.getElementById("modal");
-const modalText = document.getElementById("modalText");
-document.getElementById("modalOk").onclick = () => {
-  modal.style.display = "none";
+document.getElementById("loginBtn").onclick = ()=>{
+  const p = new firebase.auth.GoogleAuthProvider();
+  const m = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+  m ? auth.signInWithRedirect(p)
+    : auth.signInWithPopup(p).catch(()=>auth.signInWithRedirect(p));
 };
 
-function showModal(text){
-  modalText.innerText = text;
-  modal.style.display = "flex";
-}
-
-/* ===== Login ===== */
-document.getElementById("loginBtn").onclick = () => {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  const mobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-  mobile ? auth.signInWithRedirect(provider)
-         : auth.signInWithPopup(provider).catch(()=>{
-             auth.signInWithRedirect(provider);
-           });
-};
-
-/* ===== Auth State（唯一切畫面來源） ===== */
 auth.onAuthStateChanged(user=>{
   if(!user){
     login.style.display="flex";
     chat.style.display="none";
     return;
   }
-
   login.style.display="none";
   chat.style.display="flex";
   initChat(user);
 });
 
-/* ===== Chat ===== */
 function initChat(user){
-  const msgRef = db.ref("messages");
   const box = document.getElementById("messages");
-  box.innerHTML = "";
+  const ref = db.ref("messages");
+  box.innerHTML="";
 
-  msgRef.limitToLast(50).on("child_added", snap => {
-    const m = snap.val();
-    const div = document.createElement("div");
-    div.className = "msg " + (m.uid === user.uid ? "mine" : "other");
-    div.innerText = m.text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
+  ref.limitToLast(50).on("child_added", s=>{
+    const m=s.val();
+    const d=document.createElement("div");
+    d.className="msg "+(m.uid===user.uid?"mine":"");
+    d.innerText=m.text;
+    box.appendChild(d);
+    box.scrollTop=box.scrollHeight;
   });
 
-  document.getElementById("sendBtn").onclick = () => {
-    const text = msgInput.value.trim();
-    if(!text) return;
-    msgRef.push({ uid:user.uid, text });
-    msgInput.value = "";
+  sendBtn.onclick=()=>{
+    const t=msgInput.value.trim();
+    if(!t) return;
+    ref.push({uid:user.uid,text:t});
+    msgInput.value="";
   };
 }
 </script>
