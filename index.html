@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>聊天室</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kreon Chat</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -11,150 +11,214 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  min-height: 100vh;
-  background: radial-gradient(circle at top, #1a2a6c, #000);
-  color: white;
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(135deg,#020617,#020024,#0f172a);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
-/* ===== 保底容器（一定顯示） ===== */
-#app {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* ===== Login ===== */
+#login{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+  padding:32px;
+  border-radius:24px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(14px);
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
 }
 
-/* ===== 卡片 ===== */
-.card {
-  background: rgba(255,255,255,0.12);
-  backdrop-filter: blur(14px);
-  border-radius: 18px;
-  padding: 28px;
-  width: 92%;
-  max-width: 380px;
-  box-shadow: 0 20px 40px rgba(0,0,0,.4);
-  text-align: center;
+#login h1{
+  margin:0;
+  text-align:center;
+  font-size:24px;
 }
 
-button {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  cursor: pointer;
+#login button{
+  padding:14px;
+  border-radius:14px;
+  border:none;
+  font-size:16px;
+  background:white;
+  color:black;
 }
 
-.btn-google {
-  background: white;
-  color: #222;
-  font-weight: 600;
+/* ===== Chat ===== */
+#chat{
+  display:none;
+  width:100%;
+  max-width:420px;
+  height:100vh;
+  padding:12px;
+  flex-direction:column;
 }
 
-.hidden { display: none; }
+#messages{
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.msg{
+  padding:10px 14px;
+  border-radius:14px;
+  max-width:80%;
+  background:rgba(255,255,255,.15);
+}
+
+.mine{align-self:flex-end;background:#2563eb}
+.other{align-self:flex-start}
+
+#inputBar{
+  display:flex;
+  gap:8px;
+}
+
+#inputBar input{
+  flex:1;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+}
+
+#inputBar button{
+  padding:12px 16px;
+  border-radius:12px;
+  border:none;
+}
 
 /* ===== Modal ===== */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 99;
+#modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.45);
+  backdrop-filter:blur(10px);
+  z-index:9999;
 }
 
-.modal .card {
-  max-width: 320px;
+#modalCard{
+  background:rgba(255,255,255,.18);
+  padding:24px;
+  border-radius:20px;
+  text-align:center;
+  width:80%;
+  max-width:300px;
+}
+
+#modalCard button{
+  margin-top:16px;
+  padding:10px 20px;
+  border-radius:12px;
+  border:none;
 }
 </style>
 </head>
 
 <body>
 
-<div id="app">
+<!-- Login -->
+<div id="login">
+  <h1>Kreon Chat</h1>
+  <button id="loginBtn">使用 Google 登入</button>
+</div>
 
-  <!-- 登入畫面（預設顯示） -->
-  <div id="login" class="card">
-    <h2>歡迎</h2>
-    <p>請使用 Google 登入</p>
-    <button class="btn-google" onclick="login()">使用 Google 登入</button>
+<!-- Chat -->
+<div id="chat">
+  <div id="messages"></div>
+  <div id="inputBar">
+    <input id="msgInput" placeholder="輸入訊息">
+    <button id="sendBtn">送出</button>
   </div>
-
-  <!-- 聊天畫面 -->
-  <div id="chat" class="card hidden">
-    <h2>聊天室</h2>
-    <p id="userInfo"></p>
-    <button onclick="logout()">登出</button>
-  </div>
-
 </div>
 
 <!-- Modal -->
-<div id="modal" class="modal hidden">
-  <div class="card">
-    <p id="modalText">提示</p>
-    <button onclick="closeModal()">確定</button>
+<div id="modal">
+  <div id="modalCard">
+    <div id="modalText">提示</div>
+    <button id="modalOk">確定</button>
   </div>
 </div>
 
 <script>
-/* ===== Firebase 設定（確認你有填） ===== */
-const firebaseConfig = {
-  apiKey: "你的",
-  authDomain: "你的",
-  databaseURL: "你的",
-  projectId: "你的",
+/* 🔥 Firebase 設定（只改這裡） */
+firebase.initializeApp({
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+});
+
+/* ===== Init ===== */
+const auth = firebase.auth();
+const db = firebase.database();
+
+const login = document.getElementById("login");
+const chat  = document.getElementById("chat");
+
+/* ===== Modal ===== */
+const modal = document.getElementById("modal");
+const modalText = document.getElementById("modalText");
+document.getElementById("modalOk").onclick = ()=>modal.style.display="none";
+
+function showModal(t){
+  modalText.innerText = t;
+  modal.style.display="flex";
+}
+
+/* ===== Login ===== */
+document.getElementById("loginBtn").onclick = ()=>{
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const mobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+  mobile ? auth.signInWithRedirect(provider)
+         : auth.signInWithPopup(provider);
 };
 
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-
-/* ===== UI ===== */
-const loginEl = document.getElementById("login");
-const chatEl  = document.getElementById("chat");
-const userInfo = document.getElementById("userInfo");
-
-function showModal(text){
-  document.getElementById("modalText").innerText = text;
-  document.getElementById("modal").classList.remove("hidden");
-}
-function closeModal(){
-  document.getElementById("modal").classList.add("hidden");
-}
-
-/* ===== 登入 ===== */
-function login(){
-  showModal("正在跳轉 Google 登入…");
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithRedirect(provider);
-}
-
-function logout(){
-  auth.signOut();
-}
-
-/* ===== 核心：唯一登入判斷 ===== */
-auth.onAuthStateChanged(user => {
-  closeModal();
-
+/* ===== Auth State (唯一可信) ===== */
+auth.onAuthStateChanged(user=>{
   if(!user){
-    loginEl.classList.remove("hidden");
-    chatEl.classList.add("hidden");
+    login.style.display="flex";
+    chat.style.display="none";
     return;
   }
 
-  loginEl.classList.add("hidden");
-  chatEl.classList.remove("hidden");
-  userInfo.innerText = "你好，" + user.displayName;
+  login.style.display="none";
+  chat.style.display="flex";
+  initChat(user);
 });
-</script>
 
+/* ===== Chat ===== */
+function initChat(user){
+  const msgRef = db.ref("messages");
+  const box = document.getElementById("messages");
+  box.innerHTML="";
+
+  msgRef.limitToLast(50).on("child_added",s=>{
+    const m=s.val();
+    const d=document.createElement("div");
+    d.className="msg "+(m.uid===user.uid?"mine":"other");
+    d.innerText=m.text;
+    box.appendChild(d);
+    box.scrollTop=box.scrollHeight;
+  });
+
+  document.getElementById("sendBtn").onclick=()=>{
+    const t=msgInput.value.trim();
+    if(!t)return;
+    msgRef.push({uid:user.uid,text:t});
+    msgInput.value="";
+  };
+}
+</script>
 </body>
 </html>
