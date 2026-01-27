@@ -11,25 +11,25 @@
 
 <style>
 :root{
-  --bg:#020617;
-  --card:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
+  --bg1:#020617; --bg2:#020024;
+  --card:rgba(255,255,255,.08); --border:rgba(255,255,255,.15);
   --accent:#6366f1;
 }
 
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-body, html{
+html,body{
   margin:0; width:100%; height:100%; overflow:hidden;
-  font-family:-apple-system, system-ui, sans-serif;
-  background: var(--bg); color:white;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  background: linear-gradient(135deg, var(--bg1), var(--bg2));
+  color:white;
 }
 
-/* ===== Login ===== */
+/* Login Page */
 #login{
-  position:fixed; inset:0; z-index:9999;
+  position:fixed; inset:0; z-index:10;
   display:flex; align-items:center; justify-content:center;
-  background: var(--bg);
+  background: inherit;
 }
 
 .login-card{
@@ -39,40 +39,40 @@ body, html{
 }
 
 #loginBtn{
-  width:100%; padding:16px; border-radius:16px; border:none;
+  width:100%; padding:15px; border-radius:16px; border:none;
   font-size:16px; font-weight:700; background:white; color:black;
   cursor:pointer;
 }
 
-/* ===== Chat ===== */
+/* Chat Page */
 #chat{
-  display:none; /* 初始隱藏，由 JS 強制開啟 */
-  height:100dvh; width:100%; max-width:450px;
+  display:none; /* 初始隱藏，必須由 JS 改為 flex */
+  height:100%; width:100%; max-width:430px;
   margin:auto; padding:15px; flex-direction:column;
 }
 
 #messages{
   flex:1; overflow-y:auto; display:flex; flex-direction:column;
-  gap:12px; padding:10px 0;
+  gap:10px; padding-bottom:10px;
 }
 
 .msg{
-  max-width:80%; padding:12px 16px; border-radius:18px;
+  max-width:75%; padding:12px 16px; border-radius:18px;
   background:var(--card); border:1px solid var(--border);
-  font-size:15px; word-wrap:break-word;
+  word-wrap: break-word;
 }
 
 .mine{ align-self:flex-end; background:var(--accent); border:none; }
 
-#inputBar{ display:flex; gap:10px; padding:10px 0 env(safe-area-inset-bottom); }
+#inputBar{ display:flex; gap:10px; padding-bottom: env(safe-area-inset-bottom); }
 
 #inputBar input{
-  flex:1; padding:14px; border-radius:14px; border:none;
-  background:var(--card); color:white; outline:none;
+  flex:1; padding:14px; border-radius:16px; border:none;
+  outline:none; background:var(--card); color:white;
 }
 
 #inputBar button{
-  padding:0 20px; border-radius:14px; border:none;
+  padding:0 20px; border-radius:16px; border:none;
   background:var(--accent); color:white; font-weight:700;
 }
 </style>
@@ -81,24 +81,25 @@ body, html{
 
 <div id="login">
   <div class="login-card">
-    <h1 style="margin-top:0">Chat</h1>
+    <h1 style="margin:0 0 30px">Chat</h1>
     <button id="loginBtn">使用 Google 登入</button>
   </div>
 </div>
 
 <div id="chat">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
-    <b style="font-size:20px">Chat</b>
-    <span onclick="auth.signOut()" style="opacity:0.5; font-size:14px">登出</span>
+  <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+    <b>Chat</b>
+    <span onclick="auth.signOut()" style="opacity:0.5; font-size:12px">登出</span>
   </div>
   <div id="messages"></div>
   <div id="inputBar">
-    <input id="msgInput" placeholder="輸入訊息...">
+    <input id="msgInput" placeholder="輸入訊息">
     <button id="sendBtn">送出</button>
   </div>
 </div>
 
 <script>
+// Firebase 初始化
 const firebaseConfig = {
   apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
   authDomain: "kreon-chat-web.firebaseapp.com",
@@ -110,72 +111,54 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-const loginLayer = document.getElementById("login");
-const chatLayer = document.getElementById("chat");
+const loginDiv = document.getElementById("login");
+const chatDiv = document.getElementById("chat");
 
-// ⚡ 核心：強行切換函數
-function forceShowChat(user) {
-  if (!user) return;
-  // 直接移除登入層，確保它不會因為任何原因擋在前面
-  if (loginLayer && loginLayer.parentNode) {
-    loginLayer.parentNode.removeChild(loginLayer);
-  }
-  chatLayer.style.display = "flex";
-  initChat(user);
-}
-
-// 監聽狀態
-auth.onAuthStateChanged(user => {
-  if (user) {
-    forceShowChat(user);
-  } else {
-    // 如果登出或未登入，重新整理頁面回到初始狀態
-    if (!loginLayer.parentNode) location.reload();
-  }
-});
-
-// 處理 Redirect 完的結果
-auth.getRedirectResult().then(res => {
-  if (res && res.user) forceShowChat(res.user);
-});
-
-// 登入按鈕
+// 登入按鈕：Chrome 手機版建議直接用 Redirect
 document.getElementById("loginBtn").onclick = () => {
-  const p = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithRedirect(p);
+  auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
 };
 
-function initChat(user) {
-  const box = document.getElementById("messages");
+// 狀態監聽與 UI 切換
+auth.onAuthStateChanged(user => {
+  if (user) {
+    loginDiv.style.display = "none";
+    chatDiv.style.display = "flex";
+    startChat(user);
+  } else {
+    loginDiv.style.display = "flex";
+    chatDiv.style.display = "none";
+  }
+});
+
+function startChat(user) {
+  const msgBox = document.getElementById("messages");
+  const msgInput = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
   const ref = db.ref("messages");
-  
-  ref.off(); // 清除舊監聽
-  box.innerHTML = "";
+
+  ref.off();
+  msgBox.innerHTML = "";
 
   ref.limitToLast(50).on("child_added", snap => {
-    const m = snap.val();
-    const d = document.createElement("div");
-    d.className = "msg " + (m.uid === user.uid ? "mine" : "");
-    d.innerText = m.text;
-    box.appendChild(d);
-    box.scrollTop = box.scrollHeight;
+    const data = snap.val();
+    const div = document.createElement("div");
+    div.className = "msg " + (data.uid === user.uid ? "mine" : "");
+    div.innerText = data.text;
+    msgBox.appendChild(div);
+    msgBox.scrollTop = msgBox.scrollHeight;
   });
 
-  const send = () => {
-    const inp = document.getElementById("msgInput");
-    if (!inp.value.trim()) return;
-    ref.push({ uid: user.uid, text: inp.value });
-    inp.value = "";
+  const handleSend = () => {
+    const text = msgInput.value.trim();
+    if (!text) return;
+    ref.push({ uid: user.uid, text: text });
+    msgInput.value = "";
   };
 
-  document.getElementById("sendBtn").onclick = send;
-  document.getElementById("msgInput").onkeydown = (e) => { if(e.key === "Enter") send(); };
+  sendBtn.onclick = handleSend;
+  msgInput.onkeydown = (e) => { if (e.key === "Enter") handleSend(); };
 }
-
-// 🛡️ Chrome 行動版保險：若偵測到 User 但畫面沒動，0.5 秒後執行強制切換
-setTimeout(() => {
-  if (auth.currentUser) forceShowChat(auth.currentUser);
-}, 500);
 </script>
 </body>
 </html>
