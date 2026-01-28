@@ -1,328 +1,84 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Chat</title>
-
-<!-- Firebase compat -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<style>
-:root{
-  --bg1:#020617;
-  --bg2:#020024;
-  --glass:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
-  --accent:#6366f1;
-  --text:#ffffff;
-}
-
-/* 基本 */
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;width:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:
-  radial-gradient(700px 500px at 80% 10%,rgba(99,102,241,.18),transparent 60%),
-  linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);overflow:hidden}
-
-/* 在 auth 仍在初始化時隱藏 UI（防止閃爍）*/
-body.app-init #login,
-body.app-init #chat{
-  visibility:hidden;
-  opacity:0;
-  pointer-events:none;
-}
-
-/* ===== Login ===== */
-#login{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-}
-
-.login-card{
-  width:min(360px,92%);
-  padding:44px 36px;
-  border-radius:28px;
-  background:var(--glass);
-  backdrop-filter:blur(24px);
-  border:1px solid var(--border);
-  box-shadow:0 30px 80px rgba(0,0,0,.55);
-  text-align:center;
-}
-
-.login-card h1{margin:0 0 28px;font-size:28px;font-weight:800}
-.login-card p{margin:0 0 18px;color:rgba(255,255,255,.78)}
-.login-card button{
-  width:100%;padding:14px;border-radius:16px;border:none;font-size:15px;font-weight:700;background:#fff;color:#020617;cursor:pointer
-}
-.login-card button:active{transform:scale(.98)}
-
-/* ===== Chat ===== */
-#chat{
-  display:none;            /* 初始由 JS 控制顯示狀態（避免 CSS 衝突） */
-  height:100%;
-  max-width:720px;
-  margin:0 auto;
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-}
-
-.topbar{
-  height:64px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:8px 12px;
-  border-radius:14px;
-  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-  border:1px solid var(--border);
-  margin-bottom:12px;
-}
-
-.app-title{font-weight:800;font-size:18px}
-
-/* messages */
-#messages{
-  flex:1;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  padding:12px;
-  border-radius:14px;
-  background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-  border:1px solid rgba(255,255,255,0.02);
-}
-
-/* message bubble */
-.msg{
-  max-width:78%;
-  padding:12px 16px;
-  border-radius:18px;
-  background:var(--glass);
-  border:1px solid var(--border);
-  line-height:1.35;
-  word-break:break-word;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-}
-
-.mine{align-self:flex-end;background:var(--accent);border:none;color:#fff}
-.other{align-self:flex-start}
-
-/* input bar */
-#inputBar{display:flex;gap:10px;padding:10px 4px;margin-top:10px}
-#inputBar input{
-  flex:1;padding:12px 14px;border-radius:14px;border:none;outline:none;font-size:15px;background:rgba(255,255,255,0.03);color:var(--text)
-}
-#inputBar button{padding:12px 16px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
-
-/* small responsive tweaks */
-@media (max-width:520px){
-  .login-card{padding:30px;border-radius:20px}
-  .topbar{height:56px;padding:6px 10px}
-  #chat{padding:8px}
-}
-</style>
-</head>
-<!-- 頁面載入時先標示 app-init（隱藏 UI），等 Firebase 決定後移除這個 class）-->
-<body class="app-init">
-
-<!-- Login -->
-<div id="login" aria-hidden="true">
-  <div class="login-card" role="dialog" aria-modal="true">
-    <h1>Chat</h1>
-    <p>使用 Google 帳號登入後即可進入公共聊天室</p>
-    <button id="loginBtn" type="button">使用 Google 登入</button>
-  </div>
-</div>
-
-<!-- Chat -->
-<div id="chat" aria-hidden="true">
-  <div class="topbar">
-    <div class="app-title">Chat</div>
-    <!-- left space for future avatars / status -->
-    <div style="flex:1"></div>
-    <div id="meName" style="opacity:.9;font-size:13px"></div>
-    <button id="signOutBtn" type="button" style="border-radius:10px;padding:8px 10px;border:none;cursor:pointer;background:rgba(255,255,255,0.04);color:inherit">登出</button>
-  </div>
-
-  <div id="messages" aria-live="polite"></div>
-
-  <div id="inputBar">
-    <input id="msgInput" placeholder="輸入訊息…" autocomplete="off" />
-    <button id="sendBtn" type="button">送出</button>
-  </div>
-</div>
-
-<script>
-/* ---------- firebase config（你給的那組） ---------- */
-firebase.initializeApp({
-  apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
-  authDomain: "kreon-chat-web.firebaseapp.com",
-  databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "kreon-chat-web",
-  storageBucket: "kreon-chat-web.firebasestorage.app",
-  messagingSenderId: "497509136448",
-  appId: "1:497509136448:web:4899641de83c4f872d47a5",
-  measurementId: "G-G6185N7KZK"
-});
-
-const auth = firebase.auth();
-const db   = firebase.database();
-
-/* ---------- DOM ---------- */
-const body = document.body;
-const login = document.getElementById('login');
-const chat = document.getElementById('chat');
-const loginBtn = document.getElementById('loginBtn');
-const sendBtn = document.getElementById('sendBtn');
-const msgInput = document.getElementById('msgInput');
-const messages = document.getElementById('messages');
-const meName = document.getElementById('meName');
-const signOutBtn = document.getElementById('signOutBtn');
-
-/* ---------- helpers ---------- */
-function showLogin() {
-  login.style.display = 'flex';
-  login.setAttribute('aria-hidden', 'false');
-  chat.style.display = 'none';
-  chat.setAttribute('aria-hidden', 'true');
-}
-function showChat() {
-  login.style.display = 'none';
-  login.setAttribute('aria-hidden', 'true');
-  chat.style.display = 'flex';
-  chat.setAttribute('aria-hidden', 'false');
-}
-
-/* ---------- login button ---------- */
-loginBtn.addEventListener('click', () => {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-  // mobile prefer redirect
-  if (isMobile) {
-    auth.signInWithRedirect(provider);
-  } else {
-    auth.signInWithPopup(provider).catch(() => auth.signInWithRedirect(provider));
-  }
-});
-
-/* ---------- sign out ---------- */
-signOutBtn.addEventListener('click', () => {
-  auth.signOut().catch(()=>{/* silently ignore */});
-});
-
-/* ---------- Firebase auth flow ---------- */
-/*
-  We keep body.app-init until the FIRST onAuthStateChanged callback runs.
-  This prevents showing the login UI briefly while auth is still initializing,
-  which is what caused the "fused" screen flash you reported.
-*/
-let firstAuthEvent = true;
-
-auth.onAuthStateChanged(user => {
-  // on the very first call, remove the init-hiding class so UI can render properly
-  if (firstAuthEvent) {
-    body.classList.remove('app-init');
-    firstAuthEvent = false;
-  }
-
-  if (!user) {
-    // not logged in -> show login
-    showLogin();
-    teardownChat(); // stop listeners if any
-    return;
-  }
-
-  // logged in -> show chat and init chat features
-  showChat();
-  meName.textContent = user.displayName || '你';
-  initChat(user);
-});
-
-/* ---------- Chat logic ---------- */
-let messagesRef = null;
-let onChildAdded = null;
-
-function initChat(user){
-  // detach old listener if present
-  if (messagesRef && onChildAdded) {
-    messagesRef.off('child_added', onChildAdded);
-  }
-
-  messages.innerHTML = '';
-  messagesRef = db.ref('publicMessages');
-
-  // limit to last 100 for safety
-  onChildAdded = messagesRef.limitToLast(100).on('child_added', snap => {
-    const data = snap.val && snap.val();
-    if (!data) return;
-    const el = document.createElement('div');
-    el.className = 'msg ' + (data.uid === user.uid ? 'mine' : 'other');
-    // simple formatting: if senderName present, show it for others
-    if (data.uid !== user.uid && data.senderName) {
-      const who = document.createElement('div');
-      who.textContent = data.senderName;
-      who.style.fontSize = '12px';
-      who.style.opacity = '0.9';
-      who.style.marginBottom = '6px';
-      el.appendChild(who);
+  <meta charset="UTF-8" />
+  <title>Firebase 聊天室登入範例</title>
+  <style>
+    /* 預設隱藏登入和聊天室介面 */
+    #login, #chat {
+      display: none;
     }
-    const txt = document.createElement('div');
-    txt.textContent = data.text;
-    el.appendChild(txt);
+  </style>
+</head>
+<body>
+  <!-- 登入區塊 -->
+  <div id="login">
+    <h2>請先登入以使用聊天室</h2>
+    <!-- Google 登入（彈出式） -->
+    <button id="popupSignIn">Google 登入（彈出式）</button>
+    <!-- Google 登入（重定向） -->
+    <button id="redirectSignIn">Google 登入（重定向）</button>
+  </div>
 
-    messages.appendChild(el);
-    // keep scroll at bottom
-    messages.scrollTop = messages.scrollHeight;
-  });
-}
+  <!-- 聊天室區塊 -->
+  <div id="chat">
+    <h2>聊天室</h2>
+    <!-- 登出按鈕 -->
+    <button id="logout">登出</button>
+    <!-- 此處可放置聊天室訊息列表和輸入欄位 -->
+    <div id="messages">
+      <!-- 訊息區塊（略） -->
+    </div>
+  </div>
 
-/* detach listeners when logged out */
-function teardownChat(){
-  if (messagesRef && onChildAdded) {
-    messagesRef.off('child_added', onChildAdded);
-    messagesRef = null;
-    onChildAdded = null;
-  }
-  messages.innerHTML = '';
-  meName.textContent = '';
-}
+  <!-- 載入 Firebase v9 compat 版 SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
-/* ---------- send logic ---------- */
-function sendMessage(){
-  const txt = msgInput.value.trim();
-  if (!txt) return;
-  const user = auth.currentUser;
-  if (!user) return;
-  const payload = {
-    uid: user.uid,
-    text: txt,
-    senderName: user.displayName || '',
-    time: Date.now()
-  };
-  // push to DB
-  try {
-    db.ref('publicMessages').push(payload);
-  } catch(e) {
-    // ignore silently (no alert)
-  }
-  msgInput.value = '';
-}
+  <script>
+    // TODO: 請替換為自己的 Firebase 設定
+    const firebaseConfig = {
+      apiKey: "API_KEY",
+      authDomain: "PROJECT_ID.firebaseapp.com",
+      projectId: "PROJECT_ID",
+      // 其他設定欄位...
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
 
-sendBtn.addEventListener('click', sendMessage);
-msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+    // **立即註冊 onAuthStateChanged 監聽器**，在認證狀態改變時切換 UI5。
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        // 登入成功：隱藏登入頁面，顯示聊天室
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('chat').style.display = 'block';
+      } else {
+        // 尚未登入：隱藏聊天室，顯示登入頁面
+        document.getElementById('login').style.display = 'block';
+        document.getElementById('chat').style.display = 'none';
+      }
+    });
 
-/* safety: if page is unloaded, remove listeners */
-window.addEventListener('beforeunload', () => {
-  teardownChat();
-});
-</script>
+    // 彈出式登入
+    document.getElementById('popupSignIn').addEventListener('click', () => {
+      auth.signInWithPopup(provider)
+        .catch(error => {
+          console.error("登入失敗：", error);
+          // 不使用 alert，可顯示在 UI 或其他方式通知用戶
+        });
+    });
+
+    // 重定向登入
+    document.getElementById('redirectSignIn').addEventListener('click', () => {
+      auth.signInWithRedirect(provider);
+      // 當使用重定向登入時，瀏覽器會重整並在完成後再觸發 onAuthStateChanged
+    });
+
+    // 登出功能
+    document.getElementById('logout').addEventListener('click', () => {
+      auth.signOut();
+    });
+  </script>
 </body>
 </html>
