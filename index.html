@@ -1,84 +1,437 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <title>Firebase 聊天室登入範例</title>
-  <style>
-    /* 預設隱藏登入和聊天室介面 */
-    #login, #chat {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <!-- 登入區塊 -->
-  <div id="login">
-    <h2>請先登入以使用聊天室</h2>
-    <!-- Google 登入（彈出式） -->
-    <button id="popupSignIn">Google 登入（彈出式）</button>
-    <!-- Google 登入（重定向） -->
-    <button id="redirectSignIn">Google 登入（重定向）</button>
-  </div>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Chat</title>
 
-  <!-- 聊天室區塊 -->
-  <div id="chat">
-    <h2>聊天室</h2>
-    <!-- 登出按鈕 -->
-    <button id="logout">登出</button>
-    <!-- 此處可放置聊天室訊息列表和輸入欄位 -->
-    <div id="messages">
-      <!-- 訊息區塊（略） -->
+<!-- Firebase compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+  --bg1:#030418;
+  --bg2:#001029;
+  --glass:rgba(255,255,255,0.06);
+  --soft:rgba(255,255,255,0.04);
+  --accent:#6366f1;
+  --text:#EFF2FF;
+}
+
+/* base */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",system-ui; background:
+  radial-gradient(700px 500px at 80% 10%, rgba(99,102,241,0.12), transparent 60%),
+  linear-gradient(135deg,var(--bg1),var(--bg2));
+  color:var(--text);
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow:hidden;
+}
+
+/* Prevent flicker: hide UI until auth decided */
+body.app-init #login, body.app-init #chat { visibility:hidden; opacity:0; pointer-events:none; }
+
+/* Center container that adapts */
+.app-shell{
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+/* Login card (glass) */
+.login-card{
+  width:min(420px,94%);
+  border-radius:20px;
+  padding:36px 28px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  backdrop-filter: blur(18px) saturate(120%);
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 20px 60px rgba(3,6,23,0.6);
+  text-align:center;
+}
+
+.brand{
+  font-size:26px;
+  font-weight:800;
+  letter-spacing:0.2px;
+  margin-bottom:8px;
+}
+
+.hint{
+  font-size:13px;
+  color:rgba(255,255,255,0.82);
+  margin-bottom:22px;
+}
+
+/* Big Google button */
+.btn-google{
+  display:inline-flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 18px;
+  border-radius:14px;
+  background:#fff;
+  color:#0b1220;
+  font-weight:700;
+  border:none;
+  cursor:pointer;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.45);
+  transition:transform .14s ease, box-shadow .14s ease;
+  width:100%;
+}
+.btn-google:active{ transform: translateY(1px) scale(.998); }
+.btn-google svg{ width:20px; height:20px }
+
+/* Chat layout */
+#chat{
+  display:none; /* shown by JS */
+  width:min(1000px,96%);
+  max-width:920px;
+  height:100%;
+  max-height:880px;
+  border-radius:18px;
+  padding:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  backdrop-filter: blur(12px);
+  border:1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+  display:flex;
+  flex-direction:column;
+}
+
+/* top bar */
+.topbar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px;
+  border-radius:12px;
+  margin-bottom:12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  border:1px solid rgba(255,255,255,0.02);
+}
+.app-title{ font-weight:800; font-size:18px; }
+.me{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.avatar{
+  width:36px;height:36px;border-radius:10px;overflow:hidden;background:var(--soft);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:var(--text);
+}
+.name{ font-size:13px; opacity:0.95; }
+
+/* messages area */
+#messages{
+  flex:1;
+  overflow-y:auto;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  border-radius:12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+  border:1px solid rgba(255,255,255,0.02);
+}
+
+/* bubble */
+.msg{
+  max-width:72%;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.03);
+  color:var(--text);
+  line-height:1.4;
+  word-break:break-word;
+  box-shadow: 0 8px 20px rgba(3,6,23,0.45);
+}
+.msg.mine{
+  margin-left:auto;
+  background: linear-gradient(90deg, var(--accent), #8b86ff);
+  color:white;
+  border:none;
+}
+.meta{
+  font-size:12px;
+  opacity:0.85;
+  margin-bottom:6px;
+}
+
+/* input area */
+.input-area{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+  align-items:center;
+}
+.input-area input{
+  flex:1;
+  padding:12px 14px;
+  border-radius:12px;
+  border:none;
+  background:rgba(255,255,255,0.02);
+  color:var(--text);
+  outline:none;
+  font-size:15px;
+}
+.send-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  border:none;
+  background:var(--accent);
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+}
+
+/* responsive */
+@media (max-width:720px){
+  .login-card{ padding:28px 18px; border-radius:16px }
+  #chat{ padding:12px; border-radius:12px; max-width:720px }
+  .avatar{ width:32px;height:32px;border-radius:8px }
+}
+</style>
+</head>
+<body class="app-init">
+<div class="app-shell">
+
+  <!-- LOGIN -->
+  <div id="login" style="display:flex;align-items:center;justify-content:center;width:100%;">
+    <div class="login-card" role="dialog" aria-modal="true">
+      <div class="brand">Chat</div>
+      <div class="hint">使用 Google 帳號快速登入聊天室</div>
+
+      <button id="loginBtn" class="btn-google" aria-label="使用 Google 登入">
+        <!-- Google icon -->
+        <svg viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path fill="#4285f4" d="M533.5 278.4c0-17.4-1.6-34.5-4.7-51H272v96.6h146.9c-6.3 34-25 62.8-53.3 82.1v68h86.1c50.3-46.4 81.8-114.8 81.8-195.7z"/>
+          <path fill="#34a853" d="M272 544.3c72.6 0 133.6-24.2 178.1-65.8l-86.1-68c-23.9 16.1-54.6 25.6-92 25.6-70.6 0-130.4-47.6-151.8-111.6H36v69.9C80.9 490 168.3 544.3 272 544.3z"/>
+          <path fill="#fbbc04" d="M120.2 327.2c-8.5-25.1-8.5-52.2 0-77.3V180H36c-38.5 76.6-38.5 167.1 0 243.7l84.2-96.5z"/>
+          <path fill="#ea4335" d="M272 109.1c39.5-.6 77.3 13.9 106.1 40.1l79.4-79.4C398.9 24.1 333.7-.1 272 0 168.3 0 80.9 54.3 36 138.6l84.2 69.9C141.6 156.6 201.4 109.1 272 109.1z"/>
+        </svg>
+        <span>使用 Google 登入</span>
+      </button>
     </div>
   </div>
 
-  <!-- 載入 Firebase v9 compat 版 SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <!-- CHAT -->
+  <div id="chat" role="main" aria-hidden="true">
+    <div class="topbar">
+      <div class="app-title">Chat</div>
 
-  <script>
-    // TODO: 請替換為自己的 Firebase 設定
-    const firebaseConfig = {
-      apiKey: "API_KEY",
-      authDomain: "PROJECT_ID.firebaseapp.com",
-      projectId: "PROJECT_ID",
-      // 其他設定欄位...
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const provider = new firebase.auth.GoogleAuthProvider();
+      <div class="me">
+        <div id="meAvatar" class="avatar" title="我的頭像">?</div>
+        <div class="name" id="meName">你</div>
+        <button id="signOutBtn" style="border:none;background:transparent;color:inherit;cursor:pointer;font-weight:600;padding:8px;border-radius:8px;">登出</button>
+      </div>
+    </div>
 
-    // **立即註冊 onAuthStateChanged 監聽器**，在認證狀態改變時切換 UI5。
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        // 登入成功：隱藏登入頁面，顯示聊天室
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('chat').style.display = 'block';
-      } else {
-        // 尚未登入：隱藏聊天室，顯示登入頁面
-        document.getElementById('login').style.display = 'block';
-        document.getElementById('chat').style.display = 'none';
-      }
-    });
+    <div id="messages" aria-live="polite"></div>
 
-    // 彈出式登入
-    document.getElementById('popupSignIn').addEventListener('click', () => {
-      auth.signInWithPopup(provider)
-        .catch(error => {
-          console.error("登入失敗：", error);
-          // 不使用 alert，可顯示在 UI 或其他方式通知用戶
-        });
-    });
+    <div class="input-area" aria-label="訊息輸入區">
+      <input id="msgInput" placeholder="輸入訊息..." autocomplete="off" />
+      <button id="sendBtn" class="send-btn">送出</button>
+    </div>
+  </div>
 
-    // 重定向登入
-    document.getElementById('redirectSignIn').addEventListener('click', () => {
+</div>
+
+<script>
+/* ----------------- Firebase config (你提供的) ----------------- */
+firebase.initializeApp({
+  apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+  authDomain: "kreon-chat-web.firebaseapp.com",
+  databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kreon-chat-web",
+  storageBucket: "kreon-chat-web.firebasestorage.app",
+  messagingSenderId: "497509136448",
+  appId: "1:497509136448:web:4899641de83c4f872d47a5",
+  measurementId: "G-G6185N7KZK"
+});
+const auth = firebase.auth();
+const db = firebase.database();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+/* ----------------- DOM ----------------- */
+const body = document.body;
+const login = document.getElementById('login');
+const chat = document.getElementById('chat');
+const loginBtn = document.getElementById('loginBtn');
+const signOutBtn = document.getElementById('signOutBtn');
+const meAvatar = document.getElementById('meAvatar');
+const meName = document.getElementById('meName');
+const messages = document.getElementById('messages');
+const msgInput = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+
+let messagesRef = null;
+let onChildAdded = null;
+let firstAuthEvent = true;
+
+/* Helper: show/hide */
+function showLogin(){
+  login.style.display = 'flex';
+  login.setAttribute('aria-hidden','false');
+  chat.style.display = 'none';
+  chat.setAttribute('aria-hidden','true');
+}
+function showChat(){
+  login.style.display = 'none';
+  login.setAttribute('aria-hidden','true');
+  chat.style.display = 'flex';
+  chat.setAttribute('aria-hidden','false');
+}
+
+/* Try to get redirect result early (so redirect flow resolves) */
+auth.getRedirectResult && auth.getRedirectResult().catch(()=>{/* ignore */});
+
+/* Register auth listener immediately */
+auth.onAuthStateChanged(user => {
+  // remove init hiding on first event to avoid flicker
+  if (firstAuthEvent) {
+    body.classList.remove('app-init');
+    firstAuthEvent = false;
+  }
+
+  if (!user) {
+    // not logged in
+    teardownChat();
+    showLogin();
+    return;
+  }
+
+  // logged in
+  populateMe(user);
+  showChat();
+  initChat(user);
+});
+
+/* Login button: try popup first, fallback to redirect */
+loginBtn.addEventListener('click', async () => {
+  try {
+    await auth.signInWithPopup(provider);
+    // if popup works, onAuthStateChanged will fire and show chat
+  } catch (err) {
+    // Popup may be blocked by browser policies — fallback to redirect
+    try {
       auth.signInWithRedirect(provider);
-      // 當使用重定向登入時，瀏覽器會重整並在完成後再觸發 onAuthStateChanged
-    });
+    } catch(e){
+      // silent fail (no alert). The onAuthStateChanged will handle final state.
+      console.warn('redirect fallback failed', e);
+    }
+  }
+});
 
-    // 登出功能
-    document.getElementById('logout').addEventListener('click', () => {
-      auth.signOut();
-    });
-  </script>
+/* Sign out */
+signOutBtn.addEventListener('click', () => {
+  auth.signOut().catch(()=>{/* silent */});
+});
+
+/* Set my avatar/name display */
+function populateMe(user){
+  meName.textContent = user.displayName || '你';
+  if (user.photoURL){
+    meAvatar.style.backgroundImage = `url(${user.photoURL})`;
+    meAvatar.style.backgroundSize = 'cover';
+    meAvatar.textContent = '';
+  } else {
+    // initials fallback
+    const initials = (user.displayName || '你').split(' ').map(s=>s[0]).join('').slice(0,2);
+    meAvatar.style.backgroundImage = '';
+    meAvatar.textContent = initials.toUpperCase();
+  }
+}
+
+/* Init chat listeners */
+function initChat(user){
+  // detach first
+  if (messagesRef && onChildAdded) {
+    messagesRef.off('child_added', onChildAdded);
+  }
+  messages.innerHTML = '';
+
+  messagesRef = db.ref('publicMessages');
+  // keep last 200 messages
+  onChildAdded = messagesRef.limitToLast(200).on('child_added', snap => {
+    const data = snap.val && snap.val();
+    if (!data) return;
+    const el = renderMessage(data, user.uid);
+    messages.appendChild(el);
+    // auto-scroll
+    messages.scrollTop = messages.scrollHeight;
+  });
+}
+
+/* Render a message element */
+function renderMessage(data, myUid){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (data.uid === myUid ? 'mine' : 'other');
+
+  // optional sender name
+  if (data.uid !== myUid && data.senderName){
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = data.senderName;
+    wrap.appendChild(meta);
+  }
+
+  const text = document.createElement('div');
+  text.textContent = data.text || '';
+  wrap.appendChild(text);
+
+  return wrap;
+}
+
+/* teardown */
+function teardownChat(){
+  if (messagesRef && onChildAdded) {
+    messagesRef.off('child_added', onChildAdded);
+    messagesRef = null;
+    onChildAdded = null;
+  }
+  messages.innerHTML = '';
+  meName.textContent = '';
+  meAvatar.textContent = '?';
+  meAvatar.style.backgroundImage = '';
+}
+
+/* send message */
+function sendMessage(){
+  const txt = msgInput.value.trim();
+  if (!txt) return;
+  const user = auth.currentUser;
+  if (!user) return;
+  const payload = {
+    uid: user.uid,
+    text: txt,
+    senderName: user.displayName || '',
+    photoURL: user.photoURL || '',
+    time: Date.now()
+  };
+  // push safely
+  try {
+    db.ref('publicMessages').push(payload);
+  } catch(e) {
+    // ignore silently
+  }
+  msgInput.value = '';
+}
+
+/* click / enter */
+sendBtn.addEventListener('click', sendMessage);
+msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+/* detach on unload */
+window.addEventListener('beforeunload', () => {
+  teardownChat();
+});
+</script>
 </body>
 </html>
