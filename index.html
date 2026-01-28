@@ -1,304 +1,349 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Chat</title>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<style>
-:root{
-  --bg:#020617;
-  --glass:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
-  --accent:#6366f1;
-}
-
-*{
-  box-sizing:border-box;
-  user-select:none;
-}
-
-html,body{
-  margin:0;
-  width:100%;
-  height:100%;
-  background:
-    radial-gradient(600px 400px at 80% 10%,rgba(99,102,241,.18),transparent 60%),
-    var(--bg);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  color:#fff;
-  overflow:hidden;
-}
-
-/* ===== Login ===== */
-#login{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.login-card{
-  width:320px;
-  padding:44px 36px;
-  border-radius:28px;
-  background:var(--glass);
-  backdrop-filter:blur(22px);
-  border:1px solid var(--border);
-  text-align:center;
-}
-
-.login-card h1{
-  margin:0 0 30px;
-  font-size:28px;
-  font-weight:800;
-}
-
-#loginBtn{
-  width:100%;
-  height:52px;
-  border-radius:16px;
-  border:none;
-  background:#fff;
-  color:#020617;
-  font-size:16px;
-  font-weight:700;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-/* ===== Chat ===== */
-#chat{
-  position:fixed;
-  inset:0;
-  display:none;
-  flex-direction:column;
-}
-
-/* Top bar */
-#topBar{
-  height:58px;
-  padding:0 14px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background:var(--glass);
-  backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);
-}
-
-#userInfo{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-#userInfo img{
-  width:34px;
-  height:34px;
-  border-radius:50%;
-}
-
-#logoutBtn{
-  border:none;
-  background:none;
-  color:#fff;
-  font-weight:700;
-}
-
-/* Messages */
-#messages{
-  flex:1;
-  overflow-y:auto;
-  padding:14px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.msgRow{
-  display:flex;
-  gap:10px;
-  max-width:100%;
-}
-
-.msgRow.mine{
-  flex-direction:row-reverse;
-}
-
-.avatar{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-}
-
-.bubble{
-  max-width:70%;
-  padding:10px 14px;
-  border-radius:16px;
-  background:var(--glass);
-  border:1px solid var(--border);
-}
-
-.mine .bubble{
-  background:var(--accent);
-  border:none;
-}
-
-.name{
-  font-size:12px;
-  opacity:.7;
-  margin-bottom:4px;
-}
-
-/* Input */
-#inputBar{
-  display:flex;
-  gap:10px;
-  padding:12px;
-}
-
-#msgInput{
-  flex:1;
-  height:48px;
-  border-radius:16px;
-  border:none;
-  padding:0 14px;
-}
-
-#sendBtn{
-  height:48px;
-  padding:0 18px;
-  border-radius:16px;
-  border:none;
-  background:var(--accent);
-  color:#fff;
-  font-weight:700;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>聊天室</title>
+  <style>
+    /* 全域樣式 */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; background-color: #1e1e1e; color: #fff; font-family: sans-serif; }
+    #loginDiv, #chatDiv { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+    #loginBtn { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    /* 聊天區容器 */
+    #chatDiv { display: none; flex-direction: column; max-width: 600px; margin: auto; height: 100%; }
+    /* 頂部使用者資訊列 */
+    #userRow { display: flex; align-items: center; justify-content: space-between; padding: 10px; }
+    #userRow img { width: 32px; height: 32px; border-radius: 50%; margin-right: 8px; }
+    #userName { font-size: 16px; }
+    #logoutBtn { padding: 6px 12px; cursor: pointer; }
+    /* 模式切換列 */
+    #modeToggle { display: flex; justify-content: center; padding: 10px 0; }
+    #modeToggle button { flex: 1; padding: 8px 0; margin: 0 5px; background: #333; border: none; border-radius: 4px; cursor: pointer; }
+    #modeToggle button.active { background: #555; }
+    /* 私訊對象下拉 */
+    #userSelectDiv { display: none; padding: 0 10px; }
+    #userSelect { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: #fff; }
+    /* 訊息列表 */
+    #messages { flex: 1; overflow-y: auto; padding: 10px; }
+    .message { display: flex; align-items: flex-start; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+               border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+    .message img { width: 32px; height: 32px; border-radius: 50%; margin-right: 8px; }
+    .message-content { display: flex; flex-direction: column; }
+    .message .username { font-weight: bold; margin-bottom: 4px; }
+    .message .text { word-break: break-all; }
+    /* 輸入列 */
+    #inputRow { display: flex; padding: 10px; border-top: 1px solid #444; }
+    #messageInput { flex: 1; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; }
+    #sendBtn { margin-left: 8px; padding: 8px 16px; background: #555; border: none; border-radius: 4px; cursor: pointer; }
+    /* 自製刪除選單 */
+    #contextMenu { position: absolute; display: none; background: #333; border: 1px solid #555; border-radius: 4px; z-index: 1000; }
+    #contextMenu button { display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #fff; text-align: left; cursor: pointer; }
+    #contextMenu button:hover { background: #444; }
+  </style>
 </head>
-
 <body>
-
-<div id="login">
-  <div class="login-card">
-    <h1>Chat</h1>
+  <!-- 登入介面 -->
+  <div id="loginDiv">
     <button id="loginBtn">使用 Google 登入</button>
   </div>
-</div>
 
-<div id="chat">
-  <div id="topBar">
-    <div id="userInfo">
-      <img id="userAvatar">
-      <span id="userName"></span>
+  <!-- 聊天介面 -->
+  <div id="chatDiv">
+    <!-- 使用者資訊列 -->
+    <div id="userRow">
+      <div style="display: flex; align-items: center;">
+        <img id="userAvatar" src="" alt="Avatar">
+        <span id="userName"></span>
+      </div>
+      <button id="logoutBtn">登出</button>
     </div>
-    <button id="logoutBtn">登出</button>
+    <!-- 模式切換列 -->
+    <div id="modeToggle">
+      <button id="publicBtn" class="active">公共聊天室</button>
+      <button id="privateBtn">私訊</button>
+    </div>
+    <!-- 私訊對象下拉 -->
+    <div id="userSelectDiv">
+      <select id="userSelect">
+        <option value="">選擇對象</option>
+      </select>
+    </div>
+    <!-- 訊息列表 -->
+    <div id="messages"></div>
+    <!-- 輸入列 -->
+    <div id="inputRow">
+      <input id="messageInput" type="text" placeholder="輸入訊息..." />
+      <button id="sendBtn">送出</button>
+    </div>
   </div>
 
-  <div id="messages"></div>
-
-  <div id="inputBar">
-    <input id="msgInput" placeholder="輸入訊息">
-    <button id="sendBtn">送出</button>
+  <!-- 刪除選單 -->
+  <div id="contextMenu">
+    <button id="deleteBtn">刪除訊息</button>
   </div>
-</div>
 
-<script>
-firebase.initializeApp({
-  apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
-  authDomain: "kreon-chat-web.firebaseapp.com",
-  databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "kreon-chat-web",
-  storageBucket: "kreon-chat-web.firebasestorage.app",
-  messagingSenderId: "497509136448",
-  appId: "1:497509136448:web:4899641de83c4f872d47a5"
-});
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    // Firebase 初始化
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DB_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const provider = new firebase.auth.GoogleAuthProvider();
 
-const auth = firebase.auth();
-const db = firebase.database();
-const ADMIN = "oliver2013.tw@gmail.com";
+    // DOM 參考
+    const loginDiv = document.getElementById('loginDiv');
+    const chatDiv = document.getElementById('chatDiv');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userAvatar = document.getElementById('userAvatar');
+    const userNameSpan = document.getElementById('userName');
+    const publicBtn = document.getElementById('publicBtn');
+    const privateBtn = document.getElementById('privateBtn');
+    const userSelectDiv = document.getElementById('userSelectDiv');
+    const userSelect = document.getElementById('userSelect');
+    const messagesDiv = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const contextMenu = document.getElementById('contextMenu');
+    const deleteBtn = document.getElementById('deleteBtn');
 
-let started=false;
+    let currentUser = null;
+    let currentRef = null;
+    let isPublic = true;
+    let chatId = null;
+    let selectedOtherUid = null;
+    let deleteTargetKey = null;
 
-loginBtn.onclick=()=>{
-  const p=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(p).catch(()=>auth.signInWithRedirect(p));
-};
-
-logoutBtn.onclick=()=>auth.signOut();
-
-auth.onAuthStateChanged(u=>{
-  if(!u){
-    login.style.display="flex";
-    chat.style.display="none";
-    started=false;
-    return;
-  }
-
-  login.style.display="none";
-  chat.style.display="flex";
-
-  userAvatar.src=u.photoURL;
-  userName.textContent=u.displayName+(u.email===ADMIN?" 👑":"");
-
-  if(!started){
-    started=true;
-    initChat(u);
-  }
-});
-
-function initChat(u){
-  const ref=db.ref("publicMessages");
-  messages.innerHTML="";
-
-  ref.limitToLast(50).on("child_added",s=>{
-    const m=s.val();
-    const row=document.createElement("div");
-    row.className="msgRow"+(m.uid===u.uid?" mine":"");
-
-    const av=document.createElement("img");
-    av.className="avatar";
-    av.src=m.photo;
-
-    const bubble=document.createElement("div");
-    bubble.className="bubble";
-
-    const name=document.createElement("div");
-    name.className="name";
-    name.textContent=m.name+(m.email===ADMIN?" 👑":"");
-
-    const text=document.createElement("div");
-    text.textContent=m.text;
-
-    bubble.append(name,text);
-    row.append(av,bubble);
-    messages.append(row);
-    messages.scrollTop=messages.scrollHeight;
-  });
-
-  sendBtn.onclick=()=>{
-    const t=msgInput.value.trim();
-    if(!t)return;
-    ref.push({
-      uid:u.uid,
-      name:u.displayName,
-      email:u.email,
-      photo:u.photoURL,
-      text:t,
-      time:Date.now()
+    // 登入按鈕點擊
+    loginBtn.addEventListener('click', () => {
+      auth.signInWithPopup(provider).catch(err => {
+        // 若彈窗失敗，使用 Redirect
+        auth.signInWithRedirect(provider);
+      });
     });
-    msgInput.value="";
-  };
-}
-</script>
 
+    // 登出按鈕
+    logoutBtn.addEventListener('click', () => {
+      auth.signOut();
+    });
+
+    // 切換模式按鈕
+    publicBtn.addEventListener('click', () => switchMode(true));
+    privateBtn.addEventListener('click', () => switchMode(false));
+
+    function switchMode(toPublic) {
+      if (toPublic === isPublic) return;
+      isPublic = toPublic;
+      if (isPublic) {
+        publicBtn.classList.add('active');
+        privateBtn.classList.remove('active');
+        userSelectDiv.style.display = 'none';
+        chatId = null;
+        selectedOtherUid = null;
+        userSelect.value = '';
+        attachListener('publicMessages');
+      } else {
+        publicBtn.classList.remove('active');
+        privateBtn.classList.add('active');
+        userSelectDiv.style.display = 'block';
+        clearMessages();
+        // 私訊模式需重新選擇對象
+        if (currentRef) {
+          currentRef.off();
+          currentRef = null;
+        }
+      }
+    }
+
+    // 監聽使用者清單以填充下拉選單
+    db.ref('users').on('value', snap => {
+      const users = snap.val() || {};
+      // 清空舊選項（保留第一個）
+      userSelect.innerHTML = '<option value="">選擇對象</option>';
+      Object.keys(users).forEach(uid => {
+        if (currentUser && uid === currentUser.uid) return; // 排除自己
+        const option = document.createElement('option');
+        option.value = uid;
+        option.textContent = users[uid].name || users[uid].email || '使用者';
+        userSelect.appendChild(option);
+      });
+    });
+
+    // 選擇私訊對象
+    userSelect.addEventListener('change', () => {
+      const otherUid = userSelect.value;
+      if (!otherUid) {
+        chatId = null;
+        attachListener('publicMessages');
+        return;
+      }
+      selectedOtherUid = otherUid;
+      // 生成固定路徑 chatId
+      const uids = [currentUser.uid, selectedOtherUid].sort();
+      chatId = uids.join('_');
+      // 切換監聽到 privateMessages
+      attachListener(`privateMessages/${chatId}`);
+    });
+
+    // 傳送訊息按鈕
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keyup', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      if (!currentUser) return;
+      const name = currentUser.displayName || currentUser.email;
+      const avatar = currentUser.photoURL || 'https://www.gravatar.com/avatar/?d=identicon';
+      const msgObj = {
+        uid: currentUser.uid,
+        name: name,
+        avatar: avatar,
+        text: text,
+        time: firebase.database.ServerValue.TIMESTAMP
+      };
+      if (isPublic) {
+        db.ref('publicMessages').push(msgObj);
+      } else {
+        if (!chatId) return; // 尚未選擇對象
+        db.ref(`privateMessages/${chatId}`).push(msgObj);
+      }
+      messageInput.value = '';
+    }
+
+    // 切換或初始化監聽節點（public 或 private）
+    function attachListener(path) {
+      if (currentRef) {
+        currentRef.off();
+      }
+      clearMessages();
+      currentRef = db.ref(path);
+      // 監聽新增訊息
+      currentRef.on('child_added', snapshot => {
+        const msg = snapshot.val();
+        addMessage(snapshot.key, msg);
+      });
+      // 監聽刪除訊息
+      currentRef.on('child_removed', snapshot => {
+        const key = snapshot.key;
+        const el = document.querySelector(`.message[data-key="${key}"]`);
+        if (el) el.remove();
+      });
+    }
+
+    // 顯示訊息到畫面
+    function addMessage(key, msg) {
+      const div = document.createElement('div');
+      div.className = 'message';
+      div.setAttribute('data-key', key);
+      // 點擊右鍵或長按
+      if (currentUser && currentUser.email === 'oliver2013.tw@gmail.com') {
+        div.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          showContextMenu(e.pageX, e.pageY, key, msg);
+        });
+        let pressTimer;
+        div.addEventListener('touchstart', e => {
+          pressTimer = setTimeout(() => {
+            const touch = e.touches[0];
+            showContextMenu(touch.pageX, touch.pageY, key, msg);
+          }, 600);
+        });
+        div.addEventListener('touchend', e => {
+          clearTimeout(pressTimer);
+        });
+      }
+      // 頭像
+      const img = document.createElement('img');
+      img.src = msg.avatar || 'https://www.gravatar.com/avatar/?d=identicon';
+      img.alt = 'Avatar';
+      // 內容區
+      const content = document.createElement('div');
+      content.className = 'message-content';
+      const uname = document.createElement('div');
+      uname.className = 'username';
+      uname.textContent = msg.name || '匿名';
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.textContent = msg.text;
+      content.appendChild(uname);
+      content.appendChild(text);
+      div.appendChild(img);
+      div.appendChild(content);
+      messagesDiv.appendChild(div);
+      // 滾動到最新訊息
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // 清空訊息列表
+    function clearMessages() {
+      messagesDiv.innerHTML = '';
+    }
+
+    // 顯示自製刪除選單
+    function showContextMenu(x, y, key, msg) {
+      deleteTargetKey = key;
+      // 顯示選單於座標
+      contextMenu.style.top = y + 'px';
+      contextMenu.style.left = x + 'px';
+      contextMenu.style.display = 'block';
+    }
+    // 按下刪除確認
+    deleteBtn.addEventListener('click', () => {
+      if (!deleteTargetKey) return;
+      const refPath = isPublic ? 'publicMessages' : `privateMessages/${chatId}`;
+      firebase.database().ref(refPath + '/' + deleteTargetKey).remove();
+      deleteTargetKey = null;
+      contextMenu.style.display = 'none';
+    });
+    // 點擊其他處隱藏選單
+    document.addEventListener('click', (e) => {
+      if (!contextMenu.contains(e.target)) {
+        contextMenu.style.display = 'none';
+      }
+    });
+
+    // 監聽登入狀態
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        // 更新使用者資訊
+        userAvatar.src = user.photoURL || 'https://www.gravatar.com/avatar/?d=identicon';
+        userNameSpan.textContent = user.displayName || user.email;
+        // 隱藏登入介面、顯示聊天室
+        loginDiv.style.display = 'none';
+        chatDiv.style.display = 'flex';
+        // 將使用者資料寫入 DB
+        const name = user.displayName || user.email;
+        const avatar = user.photoURL || 'https://www.gravatar.com/avatar/?d=identicon';
+        db.ref('users/' + user.uid).set({ name, avatar });
+        // 初始化監聽公共聊天室
+        switchMode(true);
+      } else {
+        currentUser = null;
+        chatDiv.style.display = 'none';
+        loginDiv.style.display = 'flex';
+        // 移除所有監聽
+        if (currentRef) currentRef.off();
+        currentRef = null;
+        clearMessages();
+      }
+    });
+  </script>
 </body>
 </html>
