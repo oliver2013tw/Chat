@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Chat</title>
 
-<!-- Firebase -->
+<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -17,23 +17,21 @@
   --glass:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.15);
   --accent:#6366f1;
+  --text:#ffffff;
 }
 
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-}
+/* 基本 */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:
+  radial-gradient(700px 500px at 80% 10%,rgba(99,102,241,.18),transparent 60%),
+  linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);overflow:hidden}
 
-html,body{
-  margin:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:
-    radial-gradient(700px 500px at 80% 10%,rgba(99,102,241,.18),transparent 60%),
-    linear-gradient(135deg,var(--bg1),var(--bg2));
-  color:white;
+/* 在 auth 仍在初始化時隱藏 UI（防止閃爍）*/
+body.app-init #login,
+body.app-init #chat{
+  visibility:hidden;
+  opacity:0;
+  pointer-events:none;
 }
 
 /* ===== Login ===== */
@@ -47,7 +45,7 @@ html,body{
 }
 
 .login-card{
-  width:min(340px,90%);
+  width:min(360px,92%);
   padding:44px 36px;
   border-radius:28px;
   background:var(--glass);
@@ -57,111 +55,113 @@ html,body{
   text-align:center;
 }
 
-.login-card h1{
-  margin:0 0 30px;
-  font-size:30px;
-  font-weight:800;
-}
-
+.login-card h1{margin:0 0 28px;font-size:28px;font-weight:800}
+.login-card p{margin:0 0 18px;color:rgba(255,255,255,.78)}
 .login-card button{
-  width:100%;
-  padding:16px;
-  border-radius:18px;
-  border:none;
-  font-size:16px;
-  font-weight:700;
-  background:white;
-  color:#020617;
-  cursor:pointer;
+  width:100%;padding:14px;border-radius:16px;border:none;font-size:15px;font-weight:700;background:#fff;color:#020617;cursor:pointer
 }
-
-.login-card button:active{
-  transform:scale(.97);
-}
+.login-card button:active{transform:scale(.98)}
 
 /* ===== Chat ===== */
 #chat{
-  display:none;
+  display:none;            /* 初始由 JS 控制顯示狀態（避免 CSS 衝突） */
   height:100%;
-  max-width:460px;
-  margin:auto;
-  padding:14px;
+  max-width:720px;
+  margin:0 auto;
+  padding:12px;
   display:flex;
   flex-direction:column;
 }
 
+.topbar{
+  height:64px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:8px 12px;
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border:1px solid var(--border);
+  margin-bottom:12px;
+}
+
+.app-title{font-weight:800;font-size:18px}
+
+/* messages */
 #messages{
   flex:1;
   overflow-y:auto;
   display:flex;
   flex-direction:column;
   gap:10px;
-  padding:12px 6px;
+  padding:12px;
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  border:1px solid rgba(255,255,255,0.02);
 }
 
+/* message bubble */
 .msg{
   max-width:78%;
   padding:12px 16px;
   border-radius:18px;
   background:var(--glass);
   border:1px solid var(--border);
-  line-height:1.4;
+  line-height:1.35;
   word-break:break-word;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
 }
 
-.mine{
-  align-self:flex-end;
-  background:var(--accent);
-  border:none;
-}
+.mine{align-self:flex-end;background:var(--accent);border:none;color:#fff}
+.other{align-self:flex-start}
 
-#inputBar{
-  display:flex;
-  gap:10px;
-  padding:8px 4px;
-}
-
+/* input bar */
+#inputBar{display:flex;gap:10px;padding:10px 4px;margin-top:10px}
 #inputBar input{
-  flex:1;
-  padding:14px 16px;
-  border-radius:16px;
-  border:none;
-  outline:none;
-  font-size:15px;
+  flex:1;padding:12px 14px;border-radius:14px;border:none;outline:none;font-size:15px;background:rgba(255,255,255,0.03);color:var(--text)
 }
+#inputBar button{padding:12px 16px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
 
-#inputBar button{
-  padding:14px 18px;
-  border-radius:16px;
-  border:none;
-  background:var(--accent);
-  color:white;
-  font-weight:700;
+/* small responsive tweaks */
+@media (max-width:520px){
+  .login-card{padding:30px;border-radius:20px}
+  .topbar{height:56px;padding:6px 10px}
+  #chat{padding:8px}
 }
 </style>
 </head>
-
-<body>
+<!-- 頁面載入時先標示 app-init（隱藏 UI），等 Firebase 決定後移除這個 class）-->
+<body class="app-init">
 
 <!-- Login -->
-<div id="login">
-  <div class="login-card">
+<div id="login" aria-hidden="true">
+  <div class="login-card" role="dialog" aria-modal="true">
     <h1>Chat</h1>
-    <button id="loginBtn">使用 Google 登入</button>
+    <p>使用 Google 帳號登入後即可進入公共聊天室</p>
+    <button id="loginBtn" type="button">使用 Google 登入</button>
   </div>
 </div>
 
 <!-- Chat -->
-<div id="chat">
-  <div id="messages"></div>
+<div id="chat" aria-hidden="true">
+  <div class="topbar">
+    <div class="app-title">Chat</div>
+    <!-- left space for future avatars / status -->
+    <div style="flex:1"></div>
+    <div id="meName" style="opacity:.9;font-size:13px"></div>
+    <button id="signOutBtn" type="button" style="border-radius:10px;padding:8px 10px;border:none;cursor:pointer;background:rgba(255,255,255,0.04);color:inherit">登出</button>
+  </div>
+
+  <div id="messages" aria-live="polite"></div>
+
   <div id="inputBar">
-    <input id="msgInput" placeholder="輸入訊息…" autocomplete="off">
-    <button id="sendBtn">送出</button>
+    <input id="msgInput" placeholder="輸入訊息…" autocomplete="off" />
+    <button id="sendBtn" type="button">送出</button>
   </div>
 </div>
 
 <script>
-/* Firebase config（固定使用這組） */
+/* ---------- firebase config（你給的那組） ---------- */
 firebase.initializeApp({
   apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
   authDomain: "kreon-chat-web.firebaseapp.com",
@@ -176,69 +176,153 @@ firebase.initializeApp({
 const auth = firebase.auth();
 const db   = firebase.database();
 
-/* DOM */
-const login    = document.getElementById("login");
-const chat     = document.getElementById("chat");
-const loginBtn = document.getElementById("loginBtn");
-const sendBtn  = document.getElementById("sendBtn");
-const msgInput = document.getElementById("msgInput");
-const messages = document.getElementById("messages");
+/* ---------- DOM ---------- */
+const body = document.body;
+const login = document.getElementById('login');
+const chat = document.getElementById('chat');
+const loginBtn = document.getElementById('loginBtn');
+const sendBtn = document.getElementById('sendBtn');
+const msgInput = document.getElementById('msgInput');
+const messages = document.getElementById('messages');
+const meName = document.getElementById('meName');
+const signOutBtn = document.getElementById('signOutBtn');
 
-/* Login */
-loginBtn.onclick = () => {
+/* ---------- helpers ---------- */
+function showLogin() {
+  login.style.display = 'flex';
+  login.setAttribute('aria-hidden', 'false');
+  chat.style.display = 'none';
+  chat.setAttribute('aria-hidden', 'true');
+}
+function showChat() {
+  login.style.display = 'none';
+  login.setAttribute('aria-hidden', 'true');
+  chat.style.display = 'flex';
+  chat.setAttribute('aria-hidden', 'false');
+}
+
+/* ---------- login button ---------- */
+loginBtn.addEventListener('click', () => {
   const provider = new firebase.auth.GoogleAuthProvider();
   const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+  // mobile prefer redirect
+  if (isMobile) {
+    auth.signInWithRedirect(provider);
+  } else {
+    auth.signInWithPopup(provider).catch(() => auth.signInWithRedirect(provider));
+  }
+});
 
-  isMobile
-    ? auth.signInWithRedirect(provider)
-    : auth.signInWithPopup(provider).catch(() =>
-        auth.signInWithRedirect(provider)
-      );
-};
+/* ---------- sign out ---------- */
+signOutBtn.addEventListener('click', () => {
+  auth.signOut().catch(()=>{/* silently ignore */});
+});
 
-/* Auth State */
+/* ---------- Firebase auth flow ---------- */
+/*
+  We keep body.app-init until the FIRST onAuthStateChanged callback runs.
+  This prevents showing the login UI briefly while auth is still initializing,
+  which is what caused the "fused" screen flash you reported.
+*/
+let firstAuthEvent = true;
+
 auth.onAuthStateChanged(user => {
+  // on the very first call, remove the init-hiding class so UI can render properly
+  if (firstAuthEvent) {
+    body.classList.remove('app-init');
+    firstAuthEvent = false;
+  }
+
   if (!user) {
-    login.style.display = "flex";
-    chat.style.display  = "none";
+    // not logged in -> show login
+    showLogin();
+    teardownChat(); // stop listeners if any
     return;
   }
 
-  login.style.display = "none";
-  chat.style.display  = "flex";
+  // logged in -> show chat and init chat features
+  showChat();
+  meName.textContent = user.displayName || '你';
   initChat(user);
 });
 
-/* Chat */
-function initChat(user){
-  const ref = db.ref("publicMessages");
-  messages.innerHTML = "";
+/* ---------- Chat logic ---------- */
+let messagesRef = null;
+let onChildAdded = null;
 
-  ref.limitToLast(50).off();
-  ref.limitToLast(50).on("child_added", snap => {
-    const data = snap.val();
-    const div = document.createElement("div");
-    div.className = "msg" + (data.uid === user.uid ? " mine" : "");
-    div.textContent = data.text;
-    messages.appendChild(div);
+function initChat(user){
+  // detach old listener if present
+  if (messagesRef && onChildAdded) {
+    messagesRef.off('child_added', onChildAdded);
+  }
+
+  messages.innerHTML = '';
+  messagesRef = db.ref('publicMessages');
+
+  // limit to last 100 for safety
+  onChildAdded = messagesRef.limitToLast(100).on('child_added', snap => {
+    const data = snap.val && snap.val();
+    if (!data) return;
+    const el = document.createElement('div');
+    el.className = 'msg ' + (data.uid === user.uid ? 'mine' : 'other');
+    // simple formatting: if senderName present, show it for others
+    if (data.uid !== user.uid && data.senderName) {
+      const who = document.createElement('div');
+      who.textContent = data.senderName;
+      who.style.fontSize = '12px';
+      who.style.opacity = '0.9';
+      who.style.marginBottom = '6px';
+      el.appendChild(who);
+    }
+    const txt = document.createElement('div');
+    txt.textContent = data.text;
+    el.appendChild(txt);
+
+    messages.appendChild(el);
+    // keep scroll at bottom
     messages.scrollTop = messages.scrollHeight;
   });
-
-  sendBtn.onclick = send;
-  msgInput.onkeydown = e => e.key === "Enter" && send();
-
-  function send(){
-    const text = msgInput.value.trim();
-    if(!text) return;
-    ref.push({
-      uid: user.uid,
-      text: text,
-      time: Date.now()
-    });
-    msgInput.value = "";
-  }
 }
-</script>
 
+/* detach listeners when logged out */
+function teardownChat(){
+  if (messagesRef && onChildAdded) {
+    messagesRef.off('child_added', onChildAdded);
+    messagesRef = null;
+    onChildAdded = null;
+  }
+  messages.innerHTML = '';
+  meName.textContent = '';
+}
+
+/* ---------- send logic ---------- */
+function sendMessage(){
+  const txt = msgInput.value.trim();
+  if (!txt) return;
+  const user = auth.currentUser;
+  if (!user) return;
+  const payload = {
+    uid: user.uid,
+    text: txt,
+    senderName: user.displayName || '',
+    time: Date.now()
+  };
+  // push to DB
+  try {
+    db.ref('publicMessages').push(payload);
+  } catch(e) {
+    // ignore silently (no alert)
+  }
+  msgInput.value = '';
+}
+
+sendBtn.addEventListener('click', sendMessage);
+msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+/* safety: if page is unloaded, remove listeners */
+window.addEventListener('beforeunload', () => {
+  teardownChat();
+});
+</script>
 </body>
 </html>
