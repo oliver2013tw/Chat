@@ -1,349 +1,501 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>聊天室</title>
-  <style>
-    /* 全域樣式 */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body, html { width: 100%; height: 100%; background-color: #1e1e1e; color: #fff; font-family: sans-serif; }
-    #loginDiv, #chatDiv { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-    #loginBtn { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    /* 聊天區容器 */
-    #chatDiv { display: none; flex-direction: column; max-width: 600px; margin: auto; height: 100%; }
-    /* 頂部使用者資訊列 */
-    #userRow { display: flex; align-items: center; justify-content: space-between; padding: 10px; }
-    #userRow img { width: 32px; height: 32px; border-radius: 50%; margin-right: 8px; }
-    #userName { font-size: 16px; }
-    #logoutBtn { padding: 6px 12px; cursor: pointer; }
-    /* 模式切換列 */
-    #modeToggle { display: flex; justify-content: center; padding: 10px 0; }
-    #modeToggle button { flex: 1; padding: 8px 0; margin: 0 5px; background: #333; border: none; border-radius: 4px; cursor: pointer; }
-    #modeToggle button.active { background: #555; }
-    /* 私訊對象下拉 */
-    #userSelectDiv { display: none; padding: 0 10px; }
-    #userSelect { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #555; background: #2a2a2a; color: #fff; }
-    /* 訊息列表 */
-    #messages { flex: 1; overflow-y: auto; padding: 10px; }
-    .message { display: flex; align-items: flex-start; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-               border-radius: 8px; padding: 8px; margin-bottom: 8px; }
-    .message img { width: 32px; height: 32px; border-radius: 50%; margin-right: 8px; }
-    .message-content { display: flex; flex-direction: column; }
-    .message .username { font-weight: bold; margin-bottom: 4px; }
-    .message .text { word-break: break-all; }
-    /* 輸入列 */
-    #inputRow { display: flex; padding: 10px; border-top: 1px solid #444; }
-    #messageInput { flex: 1; padding: 8px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: #fff; }
-    #sendBtn { margin-left: 8px; padding: 8px 16px; background: #555; border: none; border-radius: 4px; cursor: pointer; }
-    /* 自製刪除選單 */
-    #contextMenu { position: absolute; display: none; background: #333; border: 1px solid #555; border-radius: 4px; z-index: 1000; }
-    #contextMenu button { display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #fff; text-align: left; cursor: pointer; }
-    #contextMenu button:hover { background: #444; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Chat</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Firebase compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+  --bg1:#030418;
+  --bg2:#001029;
+  --accent:#6366f1;
+  --muted:rgba(255,255,255,0.76);
+  --glass:rgba(255,255,255,0.04);
+  --glass-2:rgba(255,255,255,0.02);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;background:
+  radial-gradient(700px 500px at 80% 10%, rgba(99,102,241,0.12), transparent 60%),
+  linear-gradient(135deg,var(--bg1),var(--bg2));color:#fff; -webkit-font-smoothing:antialiased;}
+/* Prevent flicker while auth initializes */
+body.app-init #login, body.app-init #chat { visibility:hidden; opacity:0; pointer-events:none; }
+
+/* Layout */
+.container { height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+
+/* Login */
+.login-card{
+  width:min(420px,94%);
+  border-radius:16px;
+  padding:34px 28px;
+  text-align:center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  backdrop-filter: blur(18px) saturate(120%);
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 18px 60px rgba(0,0,0,0.55);
+}
+.brand{font-weight:800;font-size:28px;margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+.btn-google{
+  display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:none; cursor:pointer;
+  background:#fff;color:#0b1220;font-weight:700;width:100%;box-shadow:0 8px 30px rgba(2,6,23,0.35);
+}
+.btn-google .left{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.btn-google .body{flex:1;text-align:center}
+.btn-google .right{width:28px;flex:0 0 28px;opacity:0}
+
+/* Chat shell (full-bleed) */
+.chat {
+  width:100%;
+  height:100%;
+  max-height:100vh;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+}
+
+/* Top area: user + mode switch */
+.topbar{
+  display:flex;flex-direction:column;gap:8px;padding:12px;
+}
+.topbar-row{
+  display:flex;align-items:center;gap:12px;
+}
+.app-title{font-weight:800;font-size:18px}
+.user-area{margin-left:auto;display:flex;align-items:center;gap:10px}
+.avatar{width:40px;height:40px;border-radius:10px;overflow:hidden;background:var(--glass);display:flex;align-items:center;justify-content:center;font-weight:700}
+.signout{padding:8px 12px;border-radius:10px;border:none;background:transparent;color:inherit;cursor:pointer}
+
+/* mode selector row */
+.mode-row{display:flex;gap:10px;align-items:center}
+.mode-btn{padding:8px 12px;border-radius:10px;border:none;background:transparent;color:var(--muted);cursor:pointer}
+.mode-btn.active{background:linear-gradient(90deg,var(--accent),#8b86ff);color:#fff}
+
+/* user select dropdown for private */
+.user-select{padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);background:transparent;color:inherit}
+
+/* messages area */
+.messages-wrap{flex:1;display:flex;flex-direction:column;padding:12px 12px 6px 12px}
+.messages{
+  flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+  border:1px solid rgba(255,255,255,0.01);
+}
+/* message row */
+.msg-row{display:flex;gap:10px;align-items:flex-start;max-width:100%}
+.msg-row.mine{flex-direction:row-reverse}
+.msg-avatar{width:40px;height:40px;border-radius:10px;overflow:hidden;background:var(--glass);flex:0 0 40px;display:flex;align-items:center;justify-content:center}
+.msg-bubble{max-width:74%;padding:12px;border-radius:14px;background:var(--glass);border:1px solid rgba(255,255,255,0.06);position:relative}
+.msg-bubble.mine{background:linear-gradient(90deg,var(--accent),#8b86ff);color:#fff;border:none}
+.msg-name{font-size:13px;color:var(--muted);margin-bottom:6px}
+.msg-text{white-space:pre-wrap;word-break:break-word}
+.msg-time{font-size:11px;opacity:0.7;margin-top:8px;text-align:right}
+
+/* admin mark */
+.admin-mark{display:inline-block;margin-left:6px;font-size:12px;color:#facc15}
+
+/* input */
+.input-row{display:flex;gap:10px;padding:12px;border-top:1px solid rgba(255,255,255,0.02)}
+.input{flex:1;padding:12px;border-radius:12px;border:none;background:rgba(255,255,255,0.02);color:inherit}
+.btn-send{padding:12px 16px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+
+/* modal confirm */
+.modal-backdrop{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:60}
+.modal{width:min(420px,92%);background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
+.modal .actions{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.btn-ghost{padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}
+.btn-danger{padding:10px 12px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer}
+
+/* toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:28px;background:rgba(0,0,0,0.6);padding:10px 14px;border-radius:10px;z-index:70;display:none}
+
+/* context menu */
+.ctx-menu{position:absolute;display:none;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.2));border-radius:8px;border:1px solid rgba(255,255,255,0.06);z-index:80}
+.ctx-menu button{display:block;padding:8px 12px;background:transparent;border:none;color:inherit;width:100%;text-align:left;cursor:pointer}
+.ctx-menu button:hover{background:rgba(255,255,255,0.02)}
+
+/* responsive */
+@media (max-width:720px){
+  .topbar{padding:10px}
+  .msg-avatar{width:36px;height:36px}
+  .msg-bubble{padding:10px}
+}
+</style>
 </head>
-<body>
-  <!-- 登入介面 -->
-  <div id="loginDiv">
-    <button id="loginBtn">使用 Google 登入</button>
-  </div>
+<body class="app-init">
+  <div class="container">
+    <!-- LOGIN -->
+    <div id="login" class="login-card" role="dialog" aria-modal="true">
+      <div class="brand">Chat</div>
+      <div class="sub">使用 Google 帳號登入</div>
+      <button id="loginBtn" class="btn-google" aria-label="使用 Google 登入">
+        <div class="left" aria-hidden="true">
+          <!-- Google icon -->
+          <svg viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" style="width:20px;height:20px">
+            <path fill="#4285f4" d="M533.5 278.4c0-17.4-1.6-34.5-4.7-51H272v96.6h146.9c-6.3 34-25 62.8-53.3 82.1v68h86.1c50.3-46.4 81.8-114.8 81.8-195.7z"/>
+            <path fill="#34a853" d="M272 544.3c72.6 0 133.6-24.2 178.1-65.8l-86.1-68c-23.9 16.1-54.6 25.6-92 25.6-70.6 0-130.4-47.6-151.8-111.6H36v69.9C80.9 490 168.3 544.3 272 544.3z"/>
+            <path fill="#fbbc04" d="M120.2 327.2c-8.5-25.1-8.5-52.2 0-77.3V180H36c-38.5 76.6-38.5 167.1 0 243.7l84.2-96.5z"/>
+            <path fill="#ea4335" d="M272 109.1c39.5-.6 77.3 13.9 106.1 40.1l79.4-79.4C398.9 24.1 333.7-.1 272 0 168.3 0 80.9 54.3 36 138.6l84.2 69.9C141.6 156.6 201.4 109.1 272 109.1z"/>
+          </svg>
+        </div>
+        <div class="body">使用 Google 登入</div>
+        <div class="right" aria-hidden="true"></div>
+      </button>
+    </div>
 
-  <!-- 聊天介面 -->
-  <div id="chatDiv">
-    <!-- 使用者資訊列 -->
-    <div id="userRow">
-      <div style="display: flex; align-items: center;">
-        <img id="userAvatar" src="" alt="Avatar">
-        <span id="userName"></span>
+    <!-- CHAT -->
+    <div id="chat" class="chat" style="display:none">
+      <div class="topbar">
+        <div class="topbar-row">
+          <div class="app-title">Chat</div>
+          <div class="user-area">
+            <div id="meAvatar" class="avatar">?</div>
+            <div id="meName" style="font-weight:700"></div>
+            <button id="signOutBtn" class="signout">登出</button>
+          </div>
+        </div>
+
+        <div class="mode-row">
+          <button id="publicMode" class="mode-btn active">公共聊天室</button>
+          <button id="privateMode" class="mode-btn">私訊</button>
+          <select id="userSelect" class="user-select" style="margin-left:auto;display:none"></select>
+        </div>
       </div>
-      <button id="logoutBtn">登出</button>
-    </div>
-    <!-- 模式切換列 -->
-    <div id="modeToggle">
-      <button id="publicBtn" class="active">公共聊天室</button>
-      <button id="privateBtn">私訊</button>
-    </div>
-    <!-- 私訊對象下拉 -->
-    <div id="userSelectDiv">
-      <select id="userSelect">
-        <option value="">選擇對象</option>
-      </select>
-    </div>
-    <!-- 訊息列表 -->
-    <div id="messages"></div>
-    <!-- 輸入列 -->
-    <div id="inputRow">
-      <input id="messageInput" type="text" placeholder="輸入訊息..." />
-      <button id="sendBtn">送出</button>
+
+      <div class="messages-wrap">
+        <div id="messages" class="messages" aria-live="polite"></div>
+      </div>
+
+      <div class="input-row">
+        <input id="msgInput" class="input" placeholder="輸入訊息..." maxlength="800" autocomplete="off" />
+        <button id="sendBtn" class="btn-send">送出</button>
+      </div>
     </div>
   </div>
 
-  <!-- 刪除選單 -->
-  <div id="contextMenu">
-    <button id="deleteBtn">刪除訊息</button>
-  </div>
+  <!-- modal root & toast & ctx menu -->
+  <div id="modalRoot" style="display:none"></div>
+  <div id="toast" class="toast"></div>
+  <div id="ctxMenu" class="ctx-menu"><button id="ctxDelete">刪除訊息</button></div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script>
-    // Firebase 初始化
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      databaseURL: "YOUR_DB_URL",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const provider = new firebase.auth.GoogleAuthProvider();
+<script>
+/* ---------- firebase config (你給的) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+  authDomain: "kreon-chat-web.firebaseapp.com",
+  databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kreon-chat-web",
+  storageBucket: "kreon-chat-web.firebasestorage.app",
+  messagingSenderId: "497509136448",
+  appId: "1:497509136448:web:4899641de83c4f872d47a5",
+  measurementId: "G-G6185N7KZK"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const provider = new firebase.auth.GoogleAuthProvider();
 
-    // DOM 參考
-    const loginDiv = document.getElementById('loginDiv');
-    const chatDiv = document.getElementById('chatDiv');
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const userAvatar = document.getElementById('userAvatar');
-    const userNameSpan = document.getElementById('userName');
-    const publicBtn = document.getElementById('publicBtn');
-    const privateBtn = document.getElementById('privateBtn');
-    const userSelectDiv = document.getElementById('userSelectDiv');
-    const userSelect = document.getElementById('userSelect');
-    const messagesDiv = document.getElementById('messages');
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const contextMenu = document.getElementById('contextMenu');
-    const deleteBtn = document.getElementById('deleteBtn');
+/* ---------- constants ---------- */
+const ADMIN_EMAIL = "oliver2013.tw@gmail.com";
+const DEFAULT_AVATAR = "data:image/svg+xml;utf8," + encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='100%' height='100%' fill='#6366f1'/><text x='50%' y='54%' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>`
+);
 
-    let currentUser = null;
-    let currentRef = null;
-    let isPublic = true;
-    let chatId = null;
-    let selectedOtherUid = null;
-    let deleteTargetKey = null;
+/* ---------- DOM ---------- */
+const body = document.body;
+const loginEl = document.getElementById('login');
+const chatEl = document.getElementById('chat');
+const loginBtn = document.getElementById('loginBtn');
+const signOutBtn = document.getElementById('signOutBtn');
+const meAvatar = document.getElementById('meAvatar');
+const meName = document.getElementById('meName');
+const publicModeBtn = document.getElementById('publicMode');
+const privateModeBtn = document.getElementById('privateMode');
+const userSelect = document.getElementById('userSelect');
+const messagesEl = document.getElementById('messages');
+const msgInput = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+const toast = document.getElementById('toast');
+const modalRoot = document.getElementById('modalRoot');
+const ctxMenu = document.getElementById('ctxMenu');
+const ctxDelete = document.getElementById('ctxDelete');
 
-    // 登入按鈕點擊
-    loginBtn.addEventListener('click', () => {
-      auth.signInWithPopup(provider).catch(err => {
-        // 若彈窗失敗，使用 Redirect
-        auth.signInWithRedirect(provider);
-      });
-    });
+let currentUser = null;
+let messagesRef = null;
+let onAdd = null;
+let onRemove = null;
+let mode = 'public'; // or 'private'
+let currentChatId = null;
+let selectedOtherUid = null;
+let ctxTargetKey = null;
 
-    // 登出按鈕
-    logoutBtn.addEventListener('click', () => {
-      auth.signOut();
-    });
+/* small helpers */
+function showToast(text, ms=2000){ toast.textContent=text; toast.style.display='block'; clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.style.display='none', ms); }
+function showModalConfirm(title, text){ return new Promise(res=>{ modalRoot.innerHTML = `<div class="modal-backdrop"><div class="modal"><div style="font-weight:700">${title}</div><div style="margin-top:8px;color:var(--muted)">${text}</div><div class="actions"><button class="btn-ghost btn-cancel">取消</button><button class="btn-danger btn-ok">確定</button></div></div></div>`; modalRoot.style.display='block'; modalRoot.querySelector('.btn-cancel').onclick=()=>{ modalRoot.style.display='none'; modalRoot.innerHTML=''; res(false); }; modalRoot.querySelector('.btn-ok').onclick=()=>{ modalRoot.style.display='none'; modalRoot.innerHTML=''; res(true); }; }); }
 
-    // 切換模式按鈕
-    publicBtn.addEventListener('click', () => switchMode(true));
-    privateBtn.addEventListener('click', () => switchMode(false));
+/* DOM ready: attach handlers after DOM loaded (prevent "button not bound") */
+document.addEventListener('DOMContentLoaded', ()=>{
 
-    function switchMode(toPublic) {
-      if (toPublic === isPublic) return;
-      isPublic = toPublic;
-      if (isPublic) {
-        publicBtn.classList.add('active');
-        privateBtn.classList.remove('active');
-        userSelectDiv.style.display = 'none';
-        chatId = null;
-        selectedOtherUid = null;
-        userSelect.value = '';
-        attachListener('publicMessages');
+  // handle login click: mobile -> redirect, desktop -> try popup then fallback
+  loginBtn.addEventListener('click', async ()=>{
+    const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    try {
+      if (isMobile) {
+        await auth.signInWithRedirect(provider);
       } else {
-        publicBtn.classList.remove('active');
-        privateBtn.classList.add('active');
-        userSelectDiv.style.display = 'block';
-        clearMessages();
-        // 私訊模式需重新選擇對象
-        if (currentRef) {
-          currentRef.off();
-          currentRef = null;
+        try {
+          await auth.signInWithPopup(provider);
+        } catch(e) {
+          // popup blocked, fallback to redirect
+          await auth.signInWithRedirect(provider);
         }
       }
+    } catch(err){
+      console.error('login error', err);
+      showToast('登入失敗，請稍後重試');
     }
+  });
 
-    // 監聽使用者清單以填充下拉選單
-    db.ref('users').on('value', snap => {
-      const users = snap.val() || {};
-      // 清空舊選項（保留第一個）
-      userSelect.innerHTML = '<option value="">選擇對象</option>';
-      Object.keys(users).forEach(uid => {
-        if (currentUser && uid === currentUser.uid) return; // 排除自己
-        const option = document.createElement('option');
-        option.value = uid;
-        option.textContent = users[uid].name || users[uid].email || '使用者';
-        userSelect.appendChild(option);
-      });
+  signOutBtn.addEventListener('click', ()=> auth.signOut().catch(()=>{}));
+
+  publicModeBtn.addEventListener('click', ()=> switchMode('public'));
+  privateModeBtn.addEventListener('click', ()=> switchMode('private'));
+
+  sendBtn.addEventListener('click', sendMessage);
+  msgInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+
+  // hide custom context menu on click elsewhere
+  document.addEventListener('click', (e)=>{ if(!ctxMenu.contains(e.target)){ ctxMenu.style.display='none'; ctxTargetKey=null; } });
+
+  // context menu delete
+  ctxDelete.addEventListener('click', async ()=>{
+    ctxMenu.style.display='none';
+    if(!ctxTargetKey) return;
+    const confirmed = await showModalConfirm('刪除訊息', '確定要刪除這則訊息嗎？');
+    if(!confirmed) return;
+    try {
+      const path = (mode==='public') ? `publicMessages/${ctxTargetKey}` : `privateMessages/${currentChatId}/${ctxTargetKey}`;
+      await db.ref(path).remove();
+      showToast('訊息已刪除', 1400);
+    } catch(e){ console.error(e); showToast('刪除失敗'); }
+    ctxTargetKey = null;
+  });
+
+});
+
+/* Ensure redirect result resolves (so redirect flow completes) */
+if (auth && typeof auth.getRedirectResult === 'function') {
+  auth.getRedirectResult().catch(()=>{/* ignore */});
+}
+
+/* Auth state handling */
+let firstAuth = true;
+auth.onAuthStateChanged(async user=>{
+  if(firstAuth){ body.classList.remove('app-init'); firstAuth=false; }
+  currentUser = user;
+  if(!user){
+    loginEl.style.display='block';
+    chatEl.style.display='none';
+    detachMessages();
+    return;
+  }
+  // show chat UI
+  loginEl.style.display='none';
+  chatEl.style.display='flex';
+
+  // populate user area
+  meName.textContent = user.displayName || user.email || '你';
+  if(user.photoURL){ meAvatar.style.backgroundImage = `url(${user.photoURL})`; meAvatar.textContent=''; } else { meAvatar.style.backgroundImage=''; meAvatar.textContent = (user.displayName || '你')[0].toUpperCase(); }
+
+  // write user data to /users for user list
+  try {
+    const u = { name: user.displayName || user.email, avatar: user.photoURL || DEFAULT_AVATAR, email: user.email || '' };
+    await db.ref(`users/${user.uid}`).set(u);
+  } catch(e){ console.warn('failed set user', e); }
+
+  // load users list for private dropdown
+  db.ref('users').on('value', snap=>{
+    const val = snap.val() || {};
+    // rebuild select
+    userSelect.innerHTML = '<option value="">選擇對象</option>';
+    Object.keys(val).forEach(uid=>{
+      if(uid === user.uid) return;
+      const opt = document.createElement('option');
+      opt.value = uid;
+      opt.textContent = val[uid].name || val[uid].email || '使用者';
+      userSelect.appendChild(opt);
     });
+  });
 
-    // 選擇私訊對象
-    userSelect.addEventListener('change', () => {
-      const otherUid = userSelect.value;
-      if (!otherUid) {
-        chatId = null;
-        attachListener('publicMessages');
-        return;
-      }
-      selectedOtherUid = otherUid;
-      // 生成固定路徑 chatId
-      const uids = [currentUser.uid, selectedOtherUid].sort();
-      chatId = uids.join('_');
-      // 切換監聽到 privateMessages
-      attachListener(`privateMessages/${chatId}`);
+  // default to public mode
+  switchMode('public');
+});
+
+/* Switch mode */
+function switchMode(nextMode){
+  if(nextMode === mode) return;
+  mode = nextMode;
+  if(mode === 'public'){
+    publicModeBtn.classList.add('active');
+    privateModeBtn.classList.remove('active');
+    userSelect.style.display = 'none';
+    currentChatId = null;
+    selectedOtherUid = null;
+    if(currentRefPath() !== 'publicMessages') attachMessages('publicMessages');
+  } else {
+    publicModeBtn.classList.remove('active');
+    privateModeBtn.classList.add('active');
+    userSelect.style.display = 'inline-block';
+    // wait for user to pick
+    detachMessages();
+    clearMessages();
+  }
+}
+
+/* when user selects private target */
+userSelect.addEventListener('change', ()=>{
+  const other = userSelect.value;
+  if(!other){ currentChatId=null; attachMessages('publicMessages'); return; }
+  selectedOtherUid = other;
+  const uids = [currentUser.uid, selectedOtherUid].sort();
+  currentChatId = uids.join('_');
+  attachMessages(`privateMessages/${currentChatId}`);
+});
+
+/* current ref path helper */
+function currentRefPath(){
+  if(!messagesRef || !messagesRef.toString) return null;
+  // firebase compat ref.toString() returns full url: we return last path
+  try {
+    const s = messagesRef.toString();
+    return s.split('/').slice(-1)[0] || null;
+  } catch(e){ return null; }
+}
+
+/* attach messages listener */
+function attachMessages(path){
+  detachMessages();
+  clearMessages();
+  messagesRef = db.ref(path);
+  onAdd = messagesRef.limitToLast(300).on('child_added', snap=>{
+    const key = snap.key;
+    const data = snap.val();
+    renderMessage(key, data);
+    scrollToBottom();
+  });
+  onRemove = messagesRef.on('child_removed', snap=>{
+    const k = snap.key;
+    const el = messagesEl.querySelector(`[data-key="${k}"]`);
+    if(el) el.remove();
+  });
+}
+
+/* detach */
+function detachMessages(){
+  try {
+    if(messagesRef && onAdd){ messagesRef.off('child_added', onAdd); onAdd=null; }
+    if(messagesRef && onRemove){ messagesRef.off('child_removed', onRemove); onRemove=null; }
+    messagesRef = null;
+  } catch(e){ console.warn(e); }
+}
+
+/* clear DOM */
+function clearMessages(){ messagesEl.innerHTML = ''; }
+
+/* render a message safely */
+function renderMessage(key, m){
+  // safe data
+  const name = (m && (m.name || m.senderName)) || '訪客';
+  const photo = (m && (m.avatar || m.photo || m.photoURL)) || DEFAULT_AVATAR;
+  const text = (m && m.text) || '';
+  const uid = (m && m.uid) || '';
+  const email = (m && m.email) || '';
+
+  const row = document.createElement('div');
+  row.className = 'msg-row' + (uid === (currentUser && currentUser.uid) ? ' mine' : '');
+  row.dataset.key = key;
+
+  // avatar
+  const av = document.createElement('div'); av.className = 'msg-avatar';
+  const img = document.createElement('img'); img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+  img.src = photo || DEFAULT_AVATAR;
+  img.onerror = ()=> img.src = DEFAULT_AVATAR;
+  av.appendChild(img);
+
+  // bubble
+  const bubble = document.createElement('div'); bubble.className='msg-bubble' + (uid === (currentUser && currentUser.uid) ? ' mine' : '');
+  const nm = document.createElement('div'); nm.className='msg-name'; nm.textContent = name;
+  if(email === ADMIN_EMAIL){ const adm = document.createElement('span'); adm.className='admin-mark'; adm.textContent='👑'; nm.appendChild(adm); }
+  const txt = document.createElement('div'); txt.className='msg-text'; txt.textContent = text;
+  const ttime = document.createElement('div'); ttime.className='msg-time';
+  const dd = new Date((m && m.time) || Date.now()); ttime.textContent = dd.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+  bubble.appendChild(nm); bubble.appendChild(txt); bubble.appendChild(ttime);
+
+  // admin delete context: only show event handlers to admin
+  if(currentUser && currentUser.email === ADMIN_EMAIL){
+    // right click / long press to open ctx menu
+    bubble.addEventListener('contextmenu', e=>{
+      e.preventDefault();
+      ctxTargetKey = key;
+      showCtxMenu(e.pageX,e.pageY);
     });
+    let timer=null;
+    bubble.addEventListener('touchstart', e=>{
+      timer = setTimeout(()=>{ const t = e.touches[0]; ctxTargetKey=key; showCtxMenu(t.pageX,t.pageY); }, 600);
+    }, {passive:true});
+    bubble.addEventListener('touchend', ()=>{ if(timer) clearTimeout(timer); });
+  }
 
-    // 傳送訊息按鈕
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keyup', e => {
-      if (e.key === 'Enter') sendMessage();
-    });
+  row.appendChild(av);
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+}
 
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      if (!text) return;
-      if (!currentUser) return;
-      const name = currentUser.displayName || currentUser.email;
-      const avatar = currentUser.photoURL || 'https://www.gravatar.com/avatar/?d=identicon';
-      const msgObj = {
-        uid: currentUser.uid,
-        name: name,
-        avatar: avatar,
-        text: text,
-        time: firebase.database.ServerValue.TIMESTAMP
-      };
-      if (isPublic) {
-        db.ref('publicMessages').push(msgObj);
-      } else {
-        if (!chatId) return; // 尚未選擇對象
-        db.ref(`privateMessages/${chatId}`).push(msgObj);
-      }
-      messageInput.value = '';
+/* show custom context menu */
+function showCtxMenu(x,y){
+  ctxMenu.style.left = x + 'px';
+  ctxMenu.style.top = y + 'px';
+  ctxMenu.style.display = 'block';
+}
+
+/* send message */
+async function sendMessage(){
+  const txt = msgInput.value.trim();
+  if(!txt) return;
+  if(!currentUser){ showToast('尚未登入'); return; }
+  const payload = {
+    uid: currentUser.uid,
+    name: currentUser.displayName || currentUser.email || '訪客',
+    avatar: currentUser.photoURL || DEFAULT_AVATAR,
+    email: currentUser.email || '',
+    text: txt,
+    time: Date.now()
+  };
+  try {
+    if(mode === 'public'){
+      await db.ref('publicMessages').push(payload);
+    } else {
+      if(!currentChatId){ showToast('請選擇私訊對象'); return; }
+      await db.ref(`privateMessages/${currentChatId}`).push(payload);
     }
+    msgInput.value = '';
+  } catch(e){ console.error('send error', e); showToast('傳送失敗'); }
+}
 
-    // 切換或初始化監聽節點（public 或 private）
-    function attachListener(path) {
-      if (currentRef) {
-        currentRef.off();
-      }
-      clearMessages();
-      currentRef = db.ref(path);
-      // 監聽新增訊息
-      currentRef.on('child_added', snapshot => {
-        const msg = snapshot.val();
-        addMessage(snapshot.key, msg);
-      });
-      // 監聽刪除訊息
-      currentRef.on('child_removed', snapshot => {
-        const key = snapshot.key;
-        const el = document.querySelector(`.message[data-key="${key}"]`);
-        if (el) el.remove();
-      });
-    }
+/* ctx delete click handled in DOMContentLoaded listener - use ctxTargetKey variable */
 
-    // 顯示訊息到畫面
-    function addMessage(key, msg) {
-      const div = document.createElement('div');
-      div.className = 'message';
-      div.setAttribute('data-key', key);
-      // 點擊右鍵或長按
-      if (currentUser && currentUser.email === 'oliver2013.tw@gmail.com') {
-        div.addEventListener('contextmenu', e => {
-          e.preventDefault();
-          showContextMenu(e.pageX, e.pageY, key, msg);
-        });
-        let pressTimer;
-        div.addEventListener('touchstart', e => {
-          pressTimer = setTimeout(() => {
-            const touch = e.touches[0];
-            showContextMenu(touch.pageX, touch.pageY, key, msg);
-          }, 600);
-        });
-        div.addEventListener('touchend', e => {
-          clearTimeout(pressTimer);
-        });
-      }
-      // 頭像
-      const img = document.createElement('img');
-      img.src = msg.avatar || 'https://www.gravatar.com/avatar/?d=identicon';
-      img.alt = 'Avatar';
-      // 內容區
-      const content = document.createElement('div');
-      content.className = 'message-content';
-      const uname = document.createElement('div');
-      uname.className = 'username';
-      uname.textContent = msg.name || '匿名';
-      const text = document.createElement('div');
-      text.className = 'text';
-      text.textContent = msg.text;
-      content.appendChild(uname);
-      content.appendChild(text);
-      div.appendChild(img);
-      div.appendChild(content);
-      messagesDiv.appendChild(div);
-      // 滾動到最新訊息
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+/* scroll helper */
+function scrollToBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight; }
 
-    // 清空訊息列表
-    function clearMessages() {
-      messagesDiv.innerHTML = '';
-    }
-
-    // 顯示自製刪除選單
-    function showContextMenu(x, y, key, msg) {
-      deleteTargetKey = key;
-      // 顯示選單於座標
-      contextMenu.style.top = y + 'px';
-      contextMenu.style.left = x + 'px';
-      contextMenu.style.display = 'block';
-    }
-    // 按下刪除確認
-    deleteBtn.addEventListener('click', () => {
-      if (!deleteTargetKey) return;
-      const refPath = isPublic ? 'publicMessages' : `privateMessages/${chatId}`;
-      firebase.database().ref(refPath + '/' + deleteTargetKey).remove();
-      deleteTargetKey = null;
-      contextMenu.style.display = 'none';
-    });
-    // 點擊其他處隱藏選單
-    document.addEventListener('click', (e) => {
-      if (!contextMenu.contains(e.target)) {
-        contextMenu.style.display = 'none';
-      }
-    });
-
-    // 監聽登入狀態
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        currentUser = user;
-        // 更新使用者資訊
-        userAvatar.src = user.photoURL || 'https://www.gravatar.com/avatar/?d=identicon';
-        userNameSpan.textContent = user.displayName || user.email;
-        // 隱藏登入介面、顯示聊天室
-        loginDiv.style.display = 'none';
-        chatDiv.style.display = 'flex';
-        // 將使用者資料寫入 DB
-        const name = user.displayName || user.email;
-        const avatar = user.photoURL || 'https://www.gravatar.com/avatar/?d=identicon';
-        db.ref('users/' + user.uid).set({ name, avatar });
-        // 初始化監聽公共聊天室
-        switchMode(true);
-      } else {
-        currentUser = null;
-        chatDiv.style.display = 'none';
-        loginDiv.style.display = 'flex';
-        // 移除所有監聽
-        if (currentRef) currentRef.off();
-        currentRef = null;
-        clearMessages();
-      }
-    });
-  </script>
+</script>
 </body>
 </html>
