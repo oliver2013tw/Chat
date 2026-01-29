@@ -2,75 +2,109 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chat</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#020617">
+
 <style>
+*{box-sizing:border-box;user-select:none}
 html,body{
   margin:0;height:100%;overflow:hidden;
-  background:linear-gradient(160deg,#020617,#020024);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI";
-  color:#fff;user-select:none
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:radial-gradient(600px 400px at 80% 10%,rgba(99,102,241,.18),transparent 60%),
+             linear-gradient(135deg,#020617,#020024);
+  color:white;
 }
-#login,#chat{position:fixed;inset:0}
-#login{display:flex;align-items:center;justify-content:center}
+
+/* ===== Login ===== */
+#login{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+}
 .login-card{
-  width:320px;padding:42px;border-radius:28px;
+  width:320px;padding:42px 36px;
+  border-radius:28px;
   background:rgba(255,255,255,.08);
-  backdrop-filter:blur(24px);
-  text-align:center
+  backdrop-filter:blur(22px);
+  border:1px solid rgba(255,255,255,.15);
+  text-align:center;
 }
 .login-card button{
-  width:100%;height:52px;border-radius:16px;
-  border:none;font-weight:700;font-size:16px
+  width:100%;padding:16px;
+  border:none;border-radius:16px;
+  font-size:16px;font-weight:700;
+  cursor:pointer;
 }
-#chat{display:none;flex-direction:column}
-.topbar{
-  height:56px;display:flex;align-items:center;
-  justify-content:space-between;padding:0 14px;
-  background:rgba(255,255,255,.06)
+
+/* ===== Chat ===== */
+#chat{display:none;height:100%;width:100%;max-width:480px;margin:auto;display:flex;flex-direction:column}
+header{
+  display:flex;align-items:center;gap:10px;
+  padding:12px;
 }
-.user{display:flex;align-items:center;gap:8px}
-.user img{width:32px;height:32px;border-radius:50%}
-.modebar{
-  display:flex;gap:10px;padding:10px;
-  border-bottom:1px solid rgba(255,255,255,.1)
+header img{width:36px;height:36px;border-radius:50%}
+header button{margin-left:auto;border:none;background:none;color:white;font-weight:700}
+
+#modeBar{
+  display:flex;gap:10px;padding:0 12px 8px;
 }
-.modebar button{
-  flex:1;height:36;border-radius:12px;border:none;
-  background:rgba(255,255,255,.1);color:#fff
+.mode-btn{
+  flex:1;padding:10px;border-radius:14px;
+  background:rgba(255,255,255,.08);
+  text-align:center;font-weight:700;
 }
-.modebar .active{background:#6366f1}
+.mode-btn.active{background:#6366f1}
+
 #messages{
-  flex:1;overflow-y:auto;padding:16px;
-  display:flex;flex-direction:column;gap:12px
+  flex:1;overflow-y:auto;
+  padding:12px;display:flex;flex-direction:column;gap:12px;
 }
 .msg{
-  max-width:78%;padding:12px 14px;
-  border-radius:18px;background:rgba(255,255,255,.1)
+  max-width:80%;
+  padding:12px 14px;
+  border-radius:18px;
+  background:rgba(255,255,255,.08);
 }
 .mine{align-self:flex-end;background:#6366f1}
-.name{font-size:12px;opacity:.7}
-.inputbar{
+.meta{font-size:12px;opacity:.7;margin-bottom:4px}
+
+#inputBar{
   display:flex;gap:10px;padding:12px;
-  border-top:1px solid rgba(255,255,255,.1)
 }
-.inputbar input{flex:1;height:44;border-radius:12px;border:none;padding:0 12px}
-.menu{
-  position:fixed;display:none;z-index:999;
-  background:rgba(20,20,40,.95);
-  border-radius:12px;overflow:hidden
+#inputBar input{
+  flex:1;padding:14px;border:none;border-radius:16px;
 }
-.menu button{
-  padding:10px 16px;border:none;
-  background:none;color:#fff;width:100%
+#inputBar button{
+  padding:14px 18px;border:none;border-radius:16px;
+  background:#6366f1;color:white;font-weight:700;
 }
-.menu .danger{color:#ff7b7b}
-#online{font-size:13px;opacity:.8}
+
+/* ===== User List ===== */
+#users{
+  position:fixed;top:0;right:-100%;
+  width:80%;height:100%;
+  background:rgba(0,0,0,.6);
+  backdrop-filter:blur(20px);
+  transition:.3s;
+  padding:20px;
+}
+#users.show{right:0}
+.user{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px}
+
+/* ===== Context Menu ===== */
+#menu{
+  position:fixed;display:none;
+  background:#111;border-radius:14px;
+}
+#menu div{padding:12px 16px}
 </style>
 </head>
 
@@ -79,119 +113,87 @@ html,body{
 <div id="login">
   <div class="login-card">
     <h2>Chat</h2>
-    <button id="loginBtn">Google 登入</button>
+    <button id="loginBtn">使用 Google 登入</button>
   </div>
 </div>
 
 <div id="chat">
-  <div class="topbar">
-    <div class="user">
-      <img id="avatar"><span id="username"></span>
-    </div>
-    <div id="online">0 在線</div>
-    <button id="logout">登出</button>
-  </div>
+  <header>
+    <img id="meAvatar">
+    <span id="meName"></span>
+    <button onclick="toggleUsers()">👥</button>
+    <button onclick="auth.signOut()">登出</button>
+  </header>
 
-  <div class="modebar">
-    <button id="publicBtn" class="active">公共</button>
-    <button id="privateBtn">私訊</button>
+  <div id="modeBar">
+    <div class="mode-btn active" id="publicBtn">公共</div>
+    <div class="mode-btn" id="privateBtn">私訊</div>
   </div>
 
   <div id="messages"></div>
 
-  <div class="inputbar">
-    <input id="input" placeholder="輸入訊息…">
-    <button id="send">送出</button>
+  <div id="inputBar">
+    <input id="msgInput" placeholder="輸入訊息">
+    <button id="sendBtn">送出</button>
   </div>
 </div>
 
-<div class="menu" id="menu">
-  <button id="copyBtn">複製</button>
-  <button id="replyBtn">回覆</button>
-  <button id="deleteBtn" class="danger">刪除</button>
-</div>
+<div id="users"></div>
+<div id="menu"></div>
 
 <script>
-firebase.initializeApp({
-  apiKey:"AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
-  authDomain:"kreon-chat-web.firebaseapp.com",
-  databaseURL:"https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app"
-});
-
-const auth=firebase.auth(),db=firebase.database();
-const admin="oliver2013.tw@gmail.com";
-let me,mode="public",targetUser=null,msgMap={};
-const msgs=document.getElementById("messages");
-const menu=document.getElementById("menu");
-let currentKey=null,currentText="";
-
-loginBtn.onclick=()=>{
-  const p=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(p).catch(()=>auth.signInWithRedirect(p));
+const firebaseConfig = {
+  apiKey: "AIzaSyA6VaL_I9s6Wm3RFjNP5iHxFLp4hgQhkpc",
+  authDomain: "kreon-chat-web.firebaseapp.com",
+  databaseURL: "https://kreon-chat-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kreon-chat-web",
+  storageBucket: "kreon-chat-web.firebasestorage.app",
+  messagingSenderId: "497509136448",
+  appId: "1:497509136448:web:4899641de83c4f872d47a5"
 };
-logout.onclick=()=>auth.signOut();
+firebase.initializeApp(firebaseConfig);
+
+const auth=firebase.auth();
+const db=firebase.database();
+let me,room="public";
 
 auth.onAuthStateChanged(u=>{
   if(!u)return;
   me=u;
-  avatar.src=u.photoURL||"";
-  username.textContent=u.displayName||u.email;
   login.style.display="none";
   chat.style.display="flex";
-  db.ref("online/"+u.uid).set(u.displayName||u.email);
-  db.ref("online/"+u.uid).onDisconnect().remove();
-  listenOnline();
+  meAvatar.src=u.photoURL;
+  meName.textContent=u.displayName;
   loadMessages();
 });
 
-function listenOnline(){
-  db.ref("online").on("value",s=>{
-    online.textContent=Object.keys(s.val()||{}).length+" 在線";
-  });
-}
-
 function loadMessages(){
-  msgs.innerHTML="";
-  msgMap={};
-  const ref=db.ref(mode==="public"?"messages":"pm/"+me.uid+"/"+targetUser);
-  ref.off();
-  ref.on("child_added",s=>{
-    const m=s.val(),d=document.createElement("div");
+  messages.innerHTML="";
+  db.ref(room).off();
+  db.ref(room).limitToLast(50).on("child_added",s=>{
+    const m=s.val();
+    const d=document.createElement("div");
     d.className="msg"+(m.uid===me.uid?" mine":"");
-    d.innerHTML=`<div class="name">${m.name}</div><div>${m.text}</div>`;
-    msgs.appendChild(d);msgMap[s.key]=d;
-    msgs.scrollTop=msgs.scrollHeight;
-
-    d.oncontextmenu=e=>{
-      e.preventDefault();
-      currentKey=s.key;currentText=m.text;
-      menu.style.display="block";
-      menu.style.left=e.pageX+"px";
-      menu.style.top=e.pageY+"px";
-    };
-  });
-
-  ref.on("child_removed",s=>{
-    if(msgMap[s.key]) msgMap[s.key].remove();
+    d.dataset.key=s.key;
+    d.innerHTML=`<div class="meta">${m.name} · ${new Date(m.time).toLocaleTimeString()}</div>${m.text}`;
+    messages.appendChild(d);
   });
 }
 
-send.onclick=()=>{
-  const t=input.value.trim();if(!t)return;
-  db.ref("messages").push({
-    uid:me.uid,name:me.displayName||me.email,text:t
+sendBtn.onclick=()=>{
+  if(!msgInput.value)return;
+  db.ref(room).push({
+    uid:me.uid,
+    name:me.displayName,
+    text:msgInput.value,
+    time:firebase.database.ServerValue.TIMESTAMP
   });
-  input.value="";
+  msgInput.value="";
 };
 
-copyBtn.onclick=()=>navigator.clipboard.writeText(currentText);
-replyBtn.onclick=()=>{input.value="↩ "+currentText+" ";input.focus()};
-deleteBtn.onclick=()=>{
-  if(me.email===admin)
-    db.ref("messages/"+currentKey).remove();
-  menu.style.display="none";
-};
-document.onclick=()=>menu.style.display="none";
+function toggleUsers(){
+  users.classList.toggle("show");
+}
 </script>
 
 </body>
