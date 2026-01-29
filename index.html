@@ -18,10 +18,11 @@ html,body{
   color:white;
 }
 
-/* ===== Login ===== */
+/* Login */
 #login{
   position:fixed;inset:0;
   display:flex;align-items:center;justify-content:center;
+  z-index:10;
 }
 .login-card{
   width:320px;padding:40px;
@@ -33,61 +34,47 @@ html,body{
 .login-card button{
   width:100%;padding:16px;
   border:none;border-radius:16px;
-  font-weight:700;
+  font-size:16px;font-weight:700;
 }
 
-/* ===== Chat ===== */
-#chat{display:none;height:100%;max-width:480px;margin:auto;display:flex;flex-direction:column}
+/* Chat */
+#chat{
+  display:none;
+  height:100%;
+  max-width:480px;
+  margin:auto;
+  display:flex;
+  flex-direction:column;
+}
 header{
   display:flex;align-items:center;gap:10px;
   padding:12px;
 }
 header img{width:36px;height:36px;border-radius:50%}
-header button{margin-left:auto;background:none;border:none;color:white}
-
-#modeBar{display:flex;gap:10px;padding:0 12px}
-.mode{
-  flex:1;padding:10px;border-radius:14px;
-  background:rgba(255,255,255,.08);
-  text-align:center;font-weight:700;
+header button{
+  margin-left:auto;
+  background:none;border:none;
+  color:white;font-weight:700;
 }
-.mode.active{background:#6366f1}
 
 #messages{
-  flex:1;overflow-y:auto;
-  padding:12px;display:flex;flex-direction:column;gap:12px;
+  flex:1;
+  padding:12px;
+  overflow-y:auto;
 }
-.msg{
-  max-width:80%;padding:12px;border-radius:18px;
-  background:rgba(255,255,255,.08);
-}
-.mine{align-self:flex-end;background:#6366f1}
-.meta{font-size:12px;opacity:.7;margin-bottom:4px}
 
-#inputBar{display:flex;gap:10px;padding:12px}
-#inputBar input{flex:1;padding:14px;border-radius:16px;border:none}
-#inputBar button{padding:14px;border:none;border-radius:16px;background:#6366f1;color:white}
-
-/* ===== Overlay ===== */
-.overlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.4);
-  backdrop-filter:blur(16px);
-  display:none;
+#inputBar{
+  display:flex;gap:10px;padding:12px;
 }
-.overlay.show{display:block}
-
-#userPanel{
-  position:absolute;right:0;top:0;
-  width:80%;height:100%;
-  background:rgba(0,0,0,.6);
-  padding:20px;
+#inputBar input{
+  flex:1;padding:14px;
+  border:none;border-radius:16px;
 }
-.user{
-  display:flex;align-items:center;gap:10px;
-  padding:10px;border-radius:14px;
+#inputBar button{
+  padding:14px 18px;
+  border:none;border-radius:16px;
+  background:#6366f1;color:white;
 }
-.user img{width:32px;height:32px;border-radius:50%}
 </style>
 </head>
 
@@ -104,14 +91,8 @@ header button{margin-left:auto;background:none;border:none;color:white}
   <header>
     <img id="meAvatar">
     <span id="meName"></span>
-    <button onclick="openUsers()">👥</button>
-    <button onclick="auth.signOut()">登出</button>
+    <button id="logoutBtn">登出</button>
   </header>
-
-  <div id="modeBar">
-    <div class="mode active" onclick="switchPublic()">公共</div>
-    <div class="mode" onclick="openUsers()">私訊</div>
-  </div>
 
   <div id="messages"></div>
 
@@ -119,11 +100,6 @@ header button{margin-left:auto;background:none;border:none;color:white}
     <input id="msgInput" placeholder="輸入訊息">
     <button id="sendBtn">送出</button>
   </div>
-</div>
-
-<!-- 使用者浮層 -->
-<div id="overlay" class="overlay" onclick="closeUsers()">
-  <div id="userPanel" onclick="event.stopPropagation()"></div>
 </div>
 
 <script>
@@ -134,71 +110,41 @@ firebase.initializeApp({
   projectId: "kreon-chat-web"
 });
 
-const auth=firebase.auth();
-const db=firebase.database();
-let me,room="public";
+const auth = firebase.auth();
+const db = firebase.database();
 
-auth.onAuthStateChanged(u=>{
-  if(!u)return;
-  me=u;
-  login.style.display="none";
-  chat.style.display="flex";
-  meAvatar.src=u.photoURL;
-  meName.textContent=u.displayName;
-  db.ref("users/"+u.uid).set({name:u.displayName,photo:u.photoURL});
-  loadMessages();
-});
-
-function loadMessages(){
-  messages.innerHTML="";
-  db.ref("rooms/"+room).off();
-  db.ref("rooms/"+room).limitToLast(50).on("child_added",s=>{
-    const m=s.val();
-    const d=document.createElement("div");
-    d.className="msg"+(m.uid===me.uid?" mine":"");
-    d.innerHTML=`<div class="meta">${m.name} · ${new Date(m.time).toLocaleTimeString()}</div>${m.text}`;
-    messages.appendChild(d);
-  });
-}
-
-sendBtn.onclick=()=>{
-  if(!msgInput.value)return;
-  db.ref("rooms/"+room).push({
-    uid:me.uid,name:me.displayName,text:msgInput.value,
-    time:Date.now()
-  });
-  msgInput.value="";
+document.getElementById("loginBtn").onclick = ()=>{
+  auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
 };
 
-function openUsers(){
-  overlay.classList.add("show");
-  userPanel.innerHTML="";
-  db.ref("users").once("value",s=>{
-    s.forEach(u=>{
-      if(u.key===me.uid)return;
-      const d=document.createElement("div");
-      d.className="user";
-      d.innerHTML=`<img src="${u.val().photo}"><span>${u.val().name}</span>`;
-      d.onclick=()=>startPrivate(u.key,u.val().name);
-      userPanel.appendChild(d);
-    });
+auth.onAuthStateChanged(user=>{
+  if(!user) return;
+
+  // 🔥 關鍵：直接移除 login
+  document.getElementById("login").remove();
+
+  chat.style.display="flex";
+  meAvatar.src=user.photoURL;
+  meName.textContent=user.displayName;
+
+  db.ref("public").limitToLast(50).on("child_added",s=>{
+    const m=s.val();
+    const d=document.createElement("div");
+    d.textContent = m.name + "： " + m.text;
+    messages.appendChild(d);
   });
-}
 
-function closeUsers(){
-  overlay.classList.remove("show");
-}
+  sendBtn.onclick=()=>{
+    if(!msgInput.value)return;
+    db.ref("public").push({
+      name:user.displayName,
+      text:msgInput.value
+    });
+    msgInput.value="";
+  };
 
-function startPrivate(uid,name){
-  room=["private",me.uid,uid].sort().join("_");
-  closeUsers();
-  loadMessages();
-}
-
-function switchPublic(){
-  room="public";
-  loadMessages();
-}
+  logoutBtn.onclick=()=>auth.signOut();
+});
 </script>
 
 </body>
